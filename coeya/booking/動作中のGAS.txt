@@ -1,0 +1,76 @@
+// =======================================================
+// 【設定】カレンダーID
+// =======================================================
+const CALENDAR_ID = 'cc2520ac972443f5539a342d7ad267c1d4c3b1ed56c855b367b8f683ce16ae47@group.calendar.google.com'; 
+const SENDER_EMAIL = 'trextacy@gmail.com';
+
+function doGet() {
+  return HtmlService.createHtmlOutputFromFile('index')
+    .setTitle('レッスン予約 | 声家 (coeya)')
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+// -------------------------------------------------------
+// 空き枠取得：時間判定をすべて撤廃
+// -------------------------------------------------------
+function getAvailableSlots() {
+  const calendar = CalendarApp.getCalendarById(CALENDAR_ID);
+  
+  // 期間を広く取る（前後1ヶ月）
+  const start = new Date(new Date().getTime() - (30 * 24 * 60 * 60 * 1000));
+  const end = new Date(new Date().getTime() + (60 * 24 * 60 * 60 * 1000));
+  
+  const events = calendar.getEvents(start, end); 
+  const slots = [];
+  
+  events.forEach(event => {
+    try {
+      if (event && typeof event.getStart === 'function') {
+        const title = event.getTitle();
+        
+        // タイトルに「予約」が含まれていればOK
+        if (title.indexOf("予約") !== -1) { 
+          const startTime = event.getStart();
+          
+          slots.push({
+            eventId: event.getId(),
+            // 日時を「yyyy-MM-dd」形式の文字列として取得
+            date: startTime.getFullYear() + "-" + ("0"+(startTime.getMonth()+1)).slice(-2) + "-" + ("0"+startTime.getDate()).slice(-2),
+            startTime: ("0"+startTime.getHours()).slice(-2) + ":" + ("0"+startTime.getMinutes()).slice(-2)
+          });
+        }
+      }
+    } catch (e) {
+      // エラーは無視
+    }
+  });
+
+  return slots;
+}
+
+// -------------------------------------------------------
+// 予約作成処理 (変更なし)
+// -------------------------------------------------------
+function createBooking(data) {
+  try {
+    const calendar = CalendarApp.getCalendarById(CALENDAR_ID);
+    const event = calendar.getEventById(data.eventId);
+    if (!event) return { status: 'error', error: '枠が見つかりませんでした。' };
+
+    const start = event.getStart();
+    event.setTitle(`【予約】${data.courseName} / ${data.name}様`);
+    event.setDescription(`受講者: ${data.name}\nメール: ${data.email}\n備考: ${data.notes}`);
+    try { event.addGuest(data.email); } catch(e) {}
+
+    const dateStr = (start.getMonth()+1) + "/" + start.getDate() + " " + start.getHours() + ":" + ("0"+start.getMinutes()).slice(-2);
+    const body = `${data.name} 様\n\nご予約ありがとうございます。\n日時：${dateStr}\nコース：${data.courseName}\n\n当日お待ちしております。`;
+
+    MailApp.sendEmail({ to: data.email, subject: `【声家】予約確定：${data.courseName}`, body: body });
+    MailApp.sendEmail({ to: SENDER_EMAIL, subject: `【新規予約】${data.name}様`, body: `名前: ${data.name}\n日時: ${dateStr}\nメール: ${data.email}\n備考: ${data.notes}` });
+    
+    return { status: 'success' };
+  } catch (e) {
+    return { status: 'error', error: e.toString() };
+  }
+}

@@ -1,0 +1,520 @@
+/* style.css の一番先頭に追加 */
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+:root {
+    --primary-color: #e2b435; /* Gold */
+    --secondary-color: #eff079; /* Pale Yellow */
+    --header-bg: #EDEDED;
+    --text-color: #333333;
+    --light-bg: #f8f9fa;
+    --white: #ffffff;
+    --menu-bg: rgba(255, 255, 255, 0.98); /* モバイルメニュー背景（白ベースで清潔感） */
+}
+
+/* style.css 14行目付近 */
+body {
+    font-family: 'Noto Sans JP', sans-serif;
+    line-height: 1.8;
+    color: var(--text-color);
+    background-color: var(--light-bg);
+    padding-top: 70px; 
+    
+    /* ★以下2行を追加してください★ */
+    overflow-x: hidden; /* 横へのはみ出しを強制的に隠す */
+    width: 100%;        /* 幅を100%に固定 */
+}
+
+/* --- UI/UX Optimized Header --- */
+.fixed-header {
+    background-color: var(--header-bg);
+    height: 70px;
+    width: 100%;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1050;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    display: flex;
+    align-items: center;
+    transition: height 0.3s ease;
+}
+
+.header-container {
+    width: 100%;
+    max-width: 1320px; /* Bootstrap Container XXL相当 */
+    padding: 0 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* ロゴとメニューを離す */
+    position: relative;
+    height: 100%;
+    margin: 0 auto;
+}
+
+/* ロゴ設定 */
+.logo-link {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    height: 100%;
+    padding: 5px 0;
+    z-index: 1060; /* メニューより手前に */
+}
+.site-logo {
+    height: 50px; /* ロゴサイズ調整 */
+    width: auto;
+    object-fit: contain;
+}
+
+.brand-text {
+    font-family: 'Montserrat', 'Noto Sans JP', sans-serif;
+    color: var(--text-color);
+    margin-left: 15px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+/* タイトル横のサブテキスト：画面幅が狭いときは非表示にするクラス制御 */
+.brand-subtitle {
+    font-size: 0.75rem;
+    white-space: nowrap; /* 折り返し禁止 */
+}
+
+/* ハンバーガーボタン設定 */
+.menu-toggler {
+    position: relative;
+    border: none;
+    background: none;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 1060;
+    color: var(--text-color);
+    font-size: 1.5rem;
+    transition: transform 0.2s;
+}
+.menu-toggler:active {
+    transform: scale(0.9);
+}
+
+/* --- Fullscreen Navigation Menu (Mobile) --- */
+.fullscreen-nav {
+    position: fixed;
+    top: 0; /* 画面全体を覆う */
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    background-color: var(--menu-bg);
+    /* backdrop-filter: blur(10px); iOS等で重くなる場合は削除 */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    
+    /* アニメーション初期状態 */
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-20px);
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 1045; /* ヘッダー(1050)より下、コンテンツより上 */
+    padding-top: 60px; /* ヘッダー被り防止 */
+}
+
+.fullscreen-nav.open {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.nav-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    text-align: center;
+    width: 100%;
+}
+.nav-item {
+    margin: 15px 0;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+}
+/* メニューが開いたときに順番に表示する遅延設定 */
+.fullscreen-nav.open .nav-item:nth-child(1) { transition-delay: 0.1s; opacity: 1; transform: translateY(0); }
+.fullscreen-nav.open .nav-item:nth-child(2) { transition-delay: 0.15s; opacity: 1; transform: translateY(0); }
+.fullscreen-nav.open .nav-item:nth-child(3) { transition-delay: 0.2s; opacity: 1; transform: translateY(0); }
+.fullscreen-nav.open .nav-item:nth-child(4) { transition-delay: 0.25s; opacity: 1; transform: translateY(0); }
+.fullscreen-nav.open .nav-item:nth-child(5) { transition-delay: 0.3s; opacity: 1; transform: translateY(0); }
+.fullscreen-nav.open .nav-item:nth-child(6) { transition-delay: 0.35s; opacity: 1; transform: translateY(0); }
+
+.nav-link-custom {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-color) !important;
+    text-decoration: none;
+    display: inline-block;
+    padding: 10px 20px;
+    position: relative;
+}
+/* アンダーラインアニメーション */
+.nav-link-custom::after {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 3px;
+    bottom: 5px;
+    left: 50%;
+    background-color: var(--primary-color);
+    transition: width 0.3s ease, left 0.3s ease;
+}
+.nav-link-custom:hover::after {
+    width: 80%;
+    left: 10%;
+}
+
+/* --- PC Navigation (Overwrite) --- */
+@media (min-width: 992px) {
+    .menu-toggler { display: none; } /* ハンバーガー非表示 */
+    
+    .fullscreen-nav {
+        position: static;
+        height: auto;
+        background: transparent;
+        display: flex;
+        flex-direction: row;
+        justify-content: flex-end;
+        padding-top: 0;
+        opacity: 1;
+        visibility: visible;
+        transform: none;
+        width: auto;
+    }
+    .nav-list {
+        display: flex;
+        width: auto;
+    }
+    .nav-item {
+        margin: 0 8px;
+        opacity: 1;
+        transform: none;
+    }
+    .nav-link-custom {
+        font-size: 0.95rem;
+        padding: 5px 10px;
+    }
+    .nav-link-custom::after { bottom: 0; }
+}
+
+/* --- Mobile Layout Adjustments --- */
+@media (max-width: 767.98px) {
+    body { padding-top: 60px; }
+    .fixed-header { height: 60px; }
+    .site-logo { height: 40px; }
+    /* モバイルではブランド名をシンプルに */
+    .brand-text .h4 { font-size: 1.2rem; }
+    .brand-subtitle { display: none; } /* モバイルでサブタイトル非表示 */
+}
+
+/* --- Sections --- */
+.hero {
+    background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('https://image.pollinations.ai/prompt/A%20high-end,%20elegant%20music%20studio%20with%20a%20grand%20piano,%20warm%20lighting,%20luxurious%20atmosphere,%20no%20people?width=1200&height=600') center/cover no-repeat;
+    min-height: 550px;
+    color: var(--white);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+
+.section-heading-custom {
+    color: var(--primary-color);
+    font-weight: 700;
+    position: relative;
+    margin-bottom: 3rem;
+    text-align: center;
+    font-family: 'Montserrat', sans-serif;
+    letter-spacing: 1px;
+}
+.section-heading-custom::after {
+    content: ''; display: block; width: 60px; height: 4px; 
+    background-color: var(--secondary-color); margin: 0.8rem auto 0;
+}
+
+.profile-image {
+    width: 200px; height: 200px; object-fit: cover;
+    border: 5px solid var(--primary-color);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+}
+
+.lesson-card {
+    border: none;
+    border-top: 4px solid var(--primary-color);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    height: 100%;
+    transition: transform 0.3s ease;
+    background: #fff;
+}
+.lesson-card:hover {
+    transform: translateY(-5px);
+}
+.lesson-card h3 { color: var(--primary-color); font-weight: 700; margin-bottom: 1rem; font-size: 1.25rem; }
+.lesson-card ul li { position: relative; padding-left: 1.5em; list-style: none; margin-bottom: 0.5em; }
+.lesson-card ul li::before { content: '♪'; position: absolute; left: 0; color: var(--secondary-color); }
+
+.price-text {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 2.2rem;
+    color: var(--primary-color);
+    font-weight: 700;
+}
+
+.voice-card {
+    background: #fff;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+    border-left: 5px solid var(--secondary-color);
+    height: 100%;
+}
+
+.btn-cta {
+    background-color: var(--secondary-color);
+    color: #333;
+    font-weight: bold;
+    padding: 15px 40px;
+    border-radius: 50px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    transition: all 0.2s ease;
+}
+.btn-cta:hover {
+    background-color: var(--primary-color);
+    transform: scale(1.03);
+    box-shadow: 0 6px 15px rgba(0,0,0,0.25);
+}
+
+footer {
+    /* 背景色は元の設定を維持 */
+    background-color: var(--header-bg); 
+    padding: 60px 20px 20px; 
+    text-align: center;
+
+    /* --- フルスクリーン設定を追加 --- */
+    min-height: 100vh;           /* 画面の高さ100%を確保 */
+    min-height: 100dvh; /* dvh = Dynamic Viewport Height (最新の書き方) */
+    display: flex;               /* 中身を中央に寄せるための設定 */
+    flex-direction: column;
+    justify-content: center;     /* 垂直方向の中央 */
+    align-items: center;         /* 水平方向の中央 */
+    
+    /* 横揺れ防止の保険 */
+    width: 100%;
+    box-sizing: border-box;
+    scroll-snap-align: start;
+}
+
+.footer-logo {
+    height: 140px;               /* 元のサイズを維持 */
+    width: auto;
+    max-width: 90%;              /* スマホで画面からはみ出さないための保険 */
+    margin-bottom: 30px; 
+    opacity: 1;
+    display: inline-block;
+    object-fit: contain;         /* 比率を崩さない */
+}
+/* 修正後のコード */
+@media (max-width: 767.98px) {
+    .footer-logo { 
+        height: 100px; 
+        max-width: 100%;       /* ★これを追加（画面幅を超えない） */
+        object-fit: contain;   /* ★これを追加（比率を崩さない） */
+    } 
+}
+
+/* レッスンセクション内の診断バナー調整 */
+.btn-cta.rounded-pill {
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(226, 180, 53, 0.3);
+}
+
+.btn-cta.rounded-pill:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(226, 180, 53, 0.5);
+}
+
+
+/* スマホの横スクロールメニュー用：スクロールバーを非表示にする */
+.overflow-x-auto::-webkit-scrollbar {
+    display: none;
+}
+.overflow-x-auto {
+    -webkit-overflow-scrolling: touch; /* iPhoneでのスクロールを滑らかに */
+}
+
+/* 固定された時に少し背景を透過させるとオシャレです */
+.sticky-top {
+    background-color: rgba(248, 249, 250, 0.95) !important;
+    backdrop-filter: blur(5px); /* 背景をぼかす */
+}
+
+/* 追従ナビゲーション全体の高さと位置 */
+.lesson-nav {
+    top: 70px; /* ヘッダーの高さに合わせる */
+    background-color: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(8px);
+    z-index: 1020;
+}
+
+/* スマホでの「チラ見せ」とスクロール設定 */
+@media (max-width: 991.98px) {
+    .sticky-scroll-container {
+        /* 右端に余白を作ることで、最後のボタンが少し切れて見えるようにする */
+        padding-right: 40px !important; 
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .sticky-scroll-container .btn {
+        /* ボタンが潰れないように最低幅を確保 */
+        min-width: 130px; 
+    }
+
+    /* あえて薄いスクロールバーを表示して「動かせる」ことを伝える */
+    .sticky-scroll-container::-webkit-scrollbar {
+        height: 4px;
+        display: block !important;
+    }
+    .sticky-scroll-container::-webkit-scrollbar-track {
+        background: #f1f1f1;
+    }
+    .sticky-scroll-container::-webkit-scrollbar-thumb {
+        background: var(--primary-color); /* スクールカラーにすると親切 */
+        border-radius: 10px;
+    }
+}
+
+/* PCではスクロールバーを消してスッキリさせる */
+@media (min-width: 992px) {
+    .sticky-scroll-container::-webkit-scrollbar {
+        display: none;
+    }
+    .sticky-scroll-container {
+        justify-content: center; /* PCでは中央揃え */
+    }
+}
+
+/* 画像を包む枠の設定 */
+.lesson-image-container {
+    width: 100%;
+    overflow: hidden;
+    border-radius: 1.5rem; /* rounded-4相当 */
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    
+    /* スマホ・タブレット：スッキリした横長 (16:9) */
+    aspect-ratio: 16 / 9;
+}
+
+/* PC：画像が小さくならないよう、高さを出す (4:3) */
+@media (min-width: 992px) {
+    .lesson-image-container {
+        aspect-ratio: 4 / 3; 
+    }
+}
+
+/* 1:1の画像を枠いっぱいに広げて切り抜く設定 */
+.lesson-image-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* 隙間なく埋める */
+    object-position: center 20%; /* aiko風の笑顔が見えるよう少し上に重心を置く */
+}
+
+.course-hero {
+    /* 背景画像とテキストを重ねるための土台 */
+    min-height: 300px; /* 画像の高さに合わせて調整 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.hero-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    
+    /* 暫定ロゴから新しい画像に差し替えやすくします */
+    background-image: url("assets/img/hero-bg.jpg"); 
+    background-repeat: no-repeat;
+    background-position: center;
+    
+    /* 1. 幅を最大に広げつつ、アスペクト比を保って覆う */
+    background-size: cover; 
+    
+    /* 2. 透明度を調整（文字を読みやすくするため） */
+    opacity: 0.15; 
+    z-index: 0;
+}
+.logo-watermark {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    
+    /* 1. サイズのレスポンシブ化 */
+    /* 画面幅の80%を基本にしつつ、最大でも500pxに制限する設定 */
+    width: 80vw;
+    height: 80vw;
+    max-width: 500px;  /* PCでの大きすぎ防止 */
+    max-height: 500px;
+    
+    background-image: url(coeya-logo.png);
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+    opacity: 0.07;
+    z-index: 0;
+}
+
+/* 2. さらに微調整したい場合（メディアクエリ） */
+@media (max-width: 576px) {
+    .logo-watermark {
+        /* スマホでは少し控えめにするならここを調整 */
+        width: 70vw;
+        height: 70vw;
+        opacity: 0.05; /* 小さい画面では文字に被りやすいため少し薄める */
+    }
+}
+
+.course-hero-content {
+    z-index: 1;
+    /* 下のセクション（#basicなど）の幅と一致させるため container クラスを使用 */
+    max-width: 1320px; /* Bootstrapのデフォルトに準拠 */
+}
+
+/* レスポンシブ調整 */
+@media (max-width: 991px) {
+    .course-hero {
+        min-height: 200px; /* スマホ・タブレットでは高さを抑える */
+    }
+}
+
+
+@media (min-width: 768px) {
+    .border-start-md {
+        border-left: 1px solid #dee2e6;
+    }
+}
+.footer-sitemap a:hover {
+    color: #ffc107 !important; /* 声家のアクセントカラー（warning色） */
+    text-decoration: underline !important;
+}
+html { 
+    scroll-behavior: smooth;
+    scroll-snap-type: y proximity;
+ }

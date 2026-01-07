@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voix en Soie 予約システム リファレンスマニュアル - UI/UX強化版</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body { font-family: 'Noto Sans JP', sans-serif; padding-top: 30px; }
+        h1, h2, h3 { color: #007bff; margin-top: 25px; }
+        .code-container { 
+            position: relative;
+            margin-bottom: 15px;
+        }
+        .code-block { 
+            background-color: #f8f9fa; 
+            border: 1px solid #dee2e6; 
+            padding: 15px; 
+            border-radius: 5px; 
+            overflow-x: auto; 
+            font-size: 0.9rem;
+            line-height: 1.4;
+            white-space: pre-wrap;
+        }
+        .code-block pre { margin: 0; }
+        .copy-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            z-index: 10;
+            opacity: 0.8;
+        }
+        .section-separator { margin: 40px 0; border: 0; border-top: 1px solid #ccc; }
+        .config-table th { width: 30%; background-color: #e9ecef; }
+        
+        /* フローチャート スタイル */
+        .flowchart {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            background-color: #f4f4f4;
+        }
+        .flow-step {
+            width: 100%;
+            max-width: 400px;
+            padding: 15px;
+            margin-bottom: 20px;
+            background-color: #ffffff;
+            border: 2px solid #007bff;
+            border-radius: 6px;
+            text-align: center;
+            font-weight: bold;
+        }
+        .flow-arrow {
+            width: 0;
+            height: 30px;
+            border-left: 2px solid #6c757d;
+            position: relative;
+            margin: -5px 0;
+        }
+        .flow-arrow::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: -5px;
+            border: 5px solid transparent;
+            border-top-color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1 class="text-center mb-4"><i class="fas fa-book me-2"></i>Voix en Soie レッスン予約システム<br>リファレンスマニュアル（最終版）</h1>
+    <p class="lead text-center">このマニュアルは、システムのセットアップ、運用、メンテナンスに必要な全情報を含んでいます。</p>
+
+    <hr class="section-separator">
+
+    <div class="card mb-5">
+        <div class="card-header bg-primary text-white">
+            <h3 class="card-title mb-0"><i class="fas fa-list me-2"></i>目次</h3>
+        </div>
+        <div class="card-body">
+            <ol>
+                <li><a href="#section-flow">システム全体のフローチャート（全体像）</a></li>
+                <li><a href="#section-api">初期設定（GAS: Calendar API有効化）</a></li>
+                <li><a href="#section-config">システムの設定項目</a></li>
+                <li><a href="#section-operation">日常の運用（予約枠の作成）</a></li>
+                <li><a href="#section-trouble">トラブルシューティングとデプロイ</a></li>
+                <li><a href="#section-embed">ウェブサイトへの埋め込み</a></li>
+            </ol>
+        </div>
+    </div>
+
+    <hr class="section-separator">
+
+    <section id="section-flow">
+        <h2><i class="fas fa-chart-bar me-2"></i>1. システム全体のフローチャート（全体像）</h2>
+        <p>本予約システムの動作は、以下の3つの主要なコンポーネントで成り立っています。</p>
+        
+        <div class="flowchart">
+            <div class="flow-step"><i class="fas fa-desktop me-2"></i>**[A] クライアント (index.html)**<br>（ユーザー操作画面）</div>
+            <div class="flow-arrow"></div>
+            <div class="flow-step"><i class="fas fa-cloud me-2"></i>**[B] GAS (Code.gs)**<br>（サーバー側ロジック）</div>
+            <div class="flow-arrow"></div>
+            <div class="flow-step"><i class="fas fa-calendar-alt me-2"></i>**[C] Google Calendar**<br>（データ保存場所）</div>
+        </div>
+
+        <p class="mt-4">**予約動作の流れ：**</p>
+        <ol>
+            <li>**空き枠表示:** [A] が [B] に空き枠を要求。 [B] は **Calendar Advanced Service** を使って [C] から**時間指定イベント**を取得し、[A] に返す。</li>
+            <li>**予約確定:** [A] が予約情報と氏名・メールを [B] に送信。 [B] は [C] に新しいイベントを作成し、予約者に**カレンダー招待**と**確認メール**を送信する。</li>
+        </ol>
+    </section>
+
+    <hr class="section-separator">
+    
+    <section id="section-api">
+        <h2><i class="fas fa-plug me-2"></i>2. 初期設定（GAS: Calendar API有効化）</h2>
+        <p>この手順は**初回の設定時に必須**です。これを省略すると、「`Calendar is not defined`」のエラーが発生します。</p>
+
+        <div class="alert alert-danger">
+            <h4 class="alert-heading"><i class="fas fa-exclamation-triangle me-2"></i>手順：Google Calendar APIの有効化</h4>
+            <ol>
+                <li>GASエディタで左側のメニューにある<strong>「サービス」</strong>（`+`アイコン）をクリックします。</li>
+                <li>最下部の**「サービスを追加」**をクリックします。</li>
+                <li>リストから**「Google Calendar API」**を選択し、追加します。（識別子`Calendar`が自動で設定されます）</li>
+                <li>API追加後、**必ず「デプロイ」の手順**に進み、権限の再承認を行ってください。</li>
+            </ol>
+        </div>
+    </section>
+
+    <hr class="section-separator">
+
+    <section id="section-config">
+        <h2><i class="fas fa-cog me-2"></i>3. システムの設定項目</h2>
+        <p>以下の設定を変更する際は、**該当コードをコピー**し、GASエディタに貼り付けてください。</p>
+
+        <h3 id="config-gas"><i class="fas fa-server me-2"></i>3-1. GAS (`Code.gs`) の設定</h3>
+        <p>予約システムを動かす基幹設定です。`Code.gs`の冒頭のコードを修正します。</p>
+        <div class="code-container">
+            <button class="btn btn-sm btn-primary copy-btn" onclick="copyCode('gas-config-code')"><i class="fas fa-copy me-1"></i>コピー</button>
+            <div class="code-block" id="gas-config-code">
+                <pre>
+// =======================================================
+// 【設定】カレンダーIDとタイムゾーン
+// =======================================================
+const CALENDAR_ID = 'cc2520ac972443f5539a342d7ad267c1d4c3b1ed56c855b367b8f683ce16ae47@group.calendar.google.com'; // ★予約枠に使用するカレンダーID
+const TIME_ZONE = 'Asia/Tokyo'; 
+const SENDER_EMAIL = Session.getActiveUser().getEmail();</pre>
+            </div>
+        </div>
+        <table class="table table-bordered config-table">
+            <tr><th>CALENDAR_ID</th><td>予約枠の取得元カレンダーIDに置き換えてください。</td></tr>
+            <tr><th>注意点</th><td>ID変更後は必ず再デプロイと権限承認が必要です。</td></tr>
+        </table>
+
+        <h3 id="config-html"><i class="fas fa-desktop me-2"></i>3-2. HTML (`index.html`) の設定</h3>
+        <p>提供するコースと講師の情報を変更します。`index.html`の**&lt;script&gt;タグ内**を修正してください。</p>
+
+        <h4>コース (LESSON_DURATIONS)</h4>
+        <div class="code-container">
+            <button class="btn btn-sm btn-primary copy-btn" onclick="copyCode('html-course-code')"><i class="fas fa-copy me-1"></i>コピー</button>
+            <div class="code-block" id="html-course-code">
+                <pre>
+const LESSON_DURATIONS = [
+    { id: 't-60-exp', name: '体験レッスン (60分)', duration: 60, price: 5000 },
+    { id: 't-60-std', name: '通常レッスン (60分)', duration: 60, price: 8000 },
+    { id: 't-90-pro', name: 'プロ養成コース (90分)', duration: 90, price: 12000 },
+    { id: 't-30-opt', name: '特別短縮コース (30分)', duration: 30, price: 4000 }
+];</pre>
+            </div>
+        </div>
+        
+        <h4>講師 (INSTRUCTORS)</h4>
+        <div class="code-container">
+            <button class="btn btn-sm btn-primary copy-btn" onclick="copyCode('html-instructor-code')"><i class="fas fa-copy me-1"></i>コピー</button>
+            <div class="code-block" id="html-instructor-code">
+                <pre>
+const INSTRUCTORS = [
+    { id: 'instructor01', name: '後藤 菜美 先生' }, 
+    // { id: 'instructor02', name: '田中 太郎 先生' }, // 講師が増えたら追加
+];</pre>
+            </div>
+        </div>
+    </section>
+
+    <hr class="section-separator">
+
+    <section id="section-operation">
+        <h2><i class="fas fa-calendar-plus me-2"></i>4. 日常の運用（予約枠の作成）</h2>
+        
+        <div class="alert alert-success">
+            <h4 class="alert-heading"><i class="fas fa-check-circle me-2"></i>予約枠作成の絶対条件</h4>
+            <p>以下のルールに従い、Googleカレンダーにイベントを作成してください。</p>
+            <ol>
+                <li>予約枠を入れるカレンダーは、**`Code.gs`の`CALENDAR_ID`に設定したカレンダー**を使用する。</li>
+                <li>イベントは**必ず「時間指定」**に設定する。（「終日」のチェックを外す）</li>
+                <li>開始時間と終了時間を明確に設定する。（例: 10:00〜11:00）</li>
+            </ol>
+            <p class="mt-3 mb-0">※ 終日イベントやキャンセルされたイベントは、システムが自動でスキップします。</p>
+        </div>
+    </section>
+
+    <hr class="section-separator">
+
+    <section id="section-trouble">
+        <h2><i class="fas fa-bug me-2"></i>5. トラブルシューティングとデプロイ</h2>
+
+        <div class="alert alert-info">
+            <h4 class="alert-heading"><i class="fas fa-sync-alt me-2"></i>【最重要】デプロイと権限の承認</h4>
+            <p>GASのコード（`Code.gs`または`index.html`）を修正した際は、必ず以下の手順が必要です。</p>
+            <ol>
+                <li>右上の**「デプロイ」** → **「デプロイを管理」**へ進みます。</li>
+                <li>既存のデプロイの**鉛筆アイコン（編集）**をクリックします。</li>
+                <li>**「バージョン」**を**「新しいバージョン」**に変更し、**「デプロイ」**をクリックします。</li>
+                <li>「権限の承認」を求められたら、**必ず承認作業を完了**させてください。</li>
+            </ol>
+        </div>
+
+        <div class="alert alert-warning">
+            <h4 class="alert-heading"><i class="fas fa-search me-2"></i>主なエラーとその解決法</h4>
+            <ul>
+                <li>**エラー: `Calendar is not defined`**<br><strong>解決法:</strong> 「2. 初期設定」の**Calendar API有効化**手順が未完了です。必ず「サービス」からAPIを追加し、再デプロイしてください。</li>
+                <li>**症状: 緑色のマーカーが出ない**<br><strong>解決法:</strong> 「4. 日常の運用」の**予約枠作成の絶対条件**を満たしているか、カレンダーを再確認してください。（終日イベントになっていないか）</li>
+            </ul>
+        </div>
+    </section>
+
+    <hr class="section-separator">
+
+    <section id="section-embed">
+        <h2><i class="fas fa-link me-2"></i>6. ウェブサイトへの埋め込み</h2>
+
+        <h3 id="embed-code"><i class="fas fa-code me-2"></i>6-1. HTML埋め込みコード</h3>
+        <p>ウェブサイトの予約ページに以下のコードを貼り付けます。</p>
+        <div class="code-container">
+            <button class="btn btn-sm btn-primary copy-btn" onclick="copyCode('iframe-code')"><i class="fas fa-copy me-1"></i>コピー</button>
+            <div class="code-block" id="iframe-code">
+                <pre>
+&lt;div style="width: 100%; max-width: 800px; margin: 0 auto;"&gt;
+    &lt;iframe 
+        src="/ここに最新のウェブアプリのURLを貼り付けてください"
+        style="width: 100%; height: 1000px; border: none;"
+        loading="lazy"
+        title="レッスン予約フォーム"
+    &gt;
+    &lt;/iframe&gt;
+&lt;/div&gt;</pre>
+            </div>
+        </div>
+
+        <h3 id="reload-button"><i class="fas fa-home me-2"></i>6-2. 「最初に戻る」ボタンの修正</h3>
+        <p>予約完了画面（STEP 5）のボタンを、お客様のウェブサイトの予約ページURLに修正します。（`index.html`ファイル内）</p>
+        <div class="code-container">
+            <button class="btn btn-sm btn-primary copy-btn" onclick="copyCode('reload-code')"><i class="fas fa-copy me-1"></i>コピー</button>
+            <div class="code-block" id="reload-code">
+                <pre>
+// 修正対象の行
+&lt;a href="/index.html" class="btn btn-primary mt-3" onclick="window.location.reload();"&gt;最初に戻る&lt;/a&gt;
+
+// 例: 独自ドメインの予約トップページに戻す場合
+&lt;a href="https://www.yourdomain.com/booking/" class="btn btn-primary mt-3"&gt;予約トップに戻る&lt;/a&gt;</pre>
+            </div>
+        </div>
+    </section>
+
+    <footer class="text-center text-muted small mt-5 mb-3">
+        &copy; 2025 Voix en Soie Reservation System.
+    </footer>
+
+</div>
+
+<script>
+    function copyCode(elementId) {
+        const codeElement = document.getElementById(elementId);
+        const codeToCopy = codeElement.innerText.trim();
+        
+        // テキストエリアにコピー対象を一時的に格納
+        const textarea = document.createElement('textarea');
+        textarea.value = codeToCopy;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+
+        // ボタンのフィードバック
+        const button = codeElement.previousElementSibling;
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-check me-1"></i>コピー完了';
+        
+        setTimeout(() => {
+            button.innerHTML = originalText;
+        }, 1500);
+    }
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+</body>
+</html>

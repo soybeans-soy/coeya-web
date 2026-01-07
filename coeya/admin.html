@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>声家 ニュース管理ツール (編集機能付)</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f4f7f6; padding: 40px; font-family: 'Noto Sans JP', sans-serif; }
+        .container { max-width: 1000px; }
+        .card { border-radius: 15px; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .news-item { background: white; padding: 20px; border-radius: 12px; margin-bottom: 15px; border-left: 5px solid #6c757d; transition: 0.2s; }
+        .news-item:hover { box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .item-採用 { border-left-color: #dc3545; }
+        .item-重要 { border-left-color: #212529; }
+        .edit-mode { background-color: #fff4e5; border-left-color: #ffc107; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2 class="mb-4 fw-bold text-center">声家 News Data Manager</h2>
+        
+        <div class="card p-4 mb-4 text-center">
+            <h5 class="fw-bold mb-3">1. news.json を読み込む</h5>
+            <input type="file" id="fileInput" class="form-control w-50 mx-auto" accept=".json">
+        </div>
+
+        <div class="card p-4 mb-4">
+            <h5 class="fw-bold mb-3" id="formTitle">2. 新しいお知らせを追加</h5>
+            <input type="hidden" id="editIndex" value="-1">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="small fw-bold">日付</label>
+                    <input type="text" id="date" class="form-control" placeholder="2025.12.25">
+                </div>
+                <div class="col-md-3">
+                    <label class="small fw-bold">カテゴリ</label>
+                    <select id="category" class="form-select">
+                        <option value="お知らせ">お知らせ</option>
+                        <option value="採用">採用</option>
+                        <option value="重要">重要</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="small fw-bold">タイトル</label>
+                    <input type="text" id="title" class="form-control" placeholder="タイトルを入力">
+                </div>
+                <div class="col-12">
+                    <label class="small fw-bold">内容（短い説明）</label>
+                    <textarea id="content" class="form-control" rows="2" placeholder="内容を入力"></textarea>
+                </div>
+                <div class="col-md-8">
+                    <label class="small fw-bold">リンク先URL (任意)</label>
+                    <input type="text" id="link" class="form-control" placeholder="news/recruit.html など">
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button onclick="saveItem()" id="saveBtn" class="btn btn-primary w-100 fw-bold">リストに追加する</button>
+                    <button onclick="resetForm()" id="cancelBtn" class="btn btn-outline-secondary ms-2 d-none">キャンセル</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="newsList">
+            <p class="text-center text-muted mt-5">ファイルを読み込むか、新しい項目を入力してください。</p>
+        </div>
+
+        <div class="text-center mt-5 mb-5">
+            <button onclick="downloadJSON()" class="btn btn-success btn-lg px-5 shadow fw-bold">
+                <i class="fas fa-download me-2"></i> 編集済みJSONを保存する
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let newsData = [];
+
+        // ファイル読み込み処理
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    newsData = JSON.parse(event.target.result);
+                    renderList();
+                } catch (err) {
+                    alert('JSONの形式が正しくありません。');
+                }
+            };
+            reader.readAsText(file);
+        });
+
+        // データの描画
+        function renderList() {
+            const listDiv = document.getElementById('newsList');
+            if (newsData.length === 0) {
+                listDiv.innerHTML = '<p class="text-center text-muted mt-5">データがありません。</p>';
+                return;
+            }
+            listDiv.innerHTML = '<h5 class="fw-bold mb-3">現在のデータ（最新順）</h5>';
+            newsData.forEach((item, index) => {
+                const isEditing = document.getElementById('editIndex').value == index;
+                listDiv.innerHTML += `
+                    <div class="news-item item-${item.category} ${isEditing ? 'edit-mode' : ''} shadow-sm d-flex justify-content-between align-items-center">
+                        <div style="flex: 1;">
+                            <div class="mb-1">
+                                <span class="badge ${item.badgeClass || 'bg-secondary'} me-2">${item.category}</span>
+                                <small class="text-muted">${item.date}</small>
+                            </div>
+                            <div class="fw-bold text-dark">${item.title}</div>
+                            <div class="small text-muted text-truncate" style="max-width: 500px;">${item.content}</div>
+                        </div>
+                        <div class="ms-3 d-flex gap-2">
+                            <button onclick="editItem(${index})" class="btn btn-sm btn-outline-primary">編集</button>
+                            <button onclick="deleteItem(${index})" class="btn btn-sm btn-outline-danger">削除</button>
+                        </div>
+                    </div>`;
+            });
+        }
+
+        // 編集モードに入る
+        function editItem(index) {
+            const item = newsData[index];
+            document.getElementById('editIndex').value = index;
+            document.getElementById('date').value = item.date;
+            document.getElementById('category').value = item.category;
+            document.getElementById('title').value = item.title;
+            document.getElementById('content').value = item.content;
+            document.getElementById('link').value = item.link || '';
+            
+            document.getElementById('formTitle').innerText = "📝 項目を編集して保存";
+            document.getElementById('saveBtn').innerText = "変更を確定する";
+            document.getElementById('saveBtn').className = "btn btn-warning w-100 fw-bold";
+            document.getElementById('cancelBtn').classList.remove('d-none');
+            
+            renderList();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // 保存（新規追加 または 更新）
+        function saveItem() {
+            const index = parseInt(document.getElementById('editIndex').value);
+            const category = document.getElementById('category').value;
+            const badgeMap = { "お知らせ": "bg-secondary", "採用": "bg-danger", "重要": "bg-dark" };
+            
+            const item = {
+                date: document.getElementById('date').value,
+                category: category,
+                badgeClass: badgeMap[category],
+                title: document.getElementById('title').value,
+                content: document.getElementById('content').value,
+                link: document.getElementById('link').value
+            };
+
+            if (index === -1) {
+                // 新規追加
+                newsData.unshift(item);
+            } else {
+                // 更新
+                newsData[index] = item;
+            }
+
+            resetForm();
+            renderList();
+        }
+
+        // フォームのリセット
+        function resetForm() {
+            document.getElementById('editIndex').value = "-1";
+            document.getElementById('date').value = "";
+            document.getElementById('title').value = "";
+            document.getElementById('content').value = "";
+            document.getElementById('link').value = "";
+            document.getElementById('formTitle').innerText = "2. 新しいお知らせを追加";
+            document.getElementById('saveBtn').innerText = "リストに追加する";
+            document.getElementById('saveBtn').className = "btn btn-primary w-100 fw-bold";
+            document.getElementById('cancelBtn').classList.add('d-none');
+            renderList();
+        }
+
+        // 削除
+        function deleteItem(index) {
+            if(confirm('この項目を完全に削除してもよろしいですか？')) {
+                newsData.splice(index, 1);
+                renderList();
+            }
+        }
+
+        // JSONダウンロード
+        function downloadJSON() {
+            const jsonString = JSON.stringify(newsData, null, 2);
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'news.json';
+            a.click();
+        }
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/js/all.min.js"></script>
+</body>
+</html>

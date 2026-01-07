@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <meta charset="UTF-8">
+    <title>予約枠表示テスト</title>
+    <style>
+      body { font-family: sans-serif; padding: 20px; line-height: 1.6; }
+      .slot-btn { 
+        display: inline-block; margin: 5px; padding: 10px 20px;
+        background: #e2b435; color: white; border: none; border-radius: 5px; cursor: pointer;
+      }
+      .error { color: red; font-weight: bold; }
+      #log { background: #f4f4f4; padding: 10px; border: 1px solid #ccc; margin-top: 20px; }
+    </style>
+  </head>
+  <body>
+    <h1>予約枠取得テスト</h1>
+    <p>GASから取得した予約枠を以下に表示します：</p>
+    
+    <div id="status">読み込み中...</div>
+    <div id="container"></div>
+
+    <div id="log">
+      <strong>通信ログ:</strong>
+      <div id="log-content">まだデータはありません</div>
+    </div>
+
+    <script>
+      // ページが開いたらすぐに実行
+      window.onload = function() {
+        addLog("GASに通信を開始します...");
+        
+        google.script.run
+          .withSuccessHandler(showSlots)
+          .withFailureHandler(showError)
+          .getAvailableSlots();
+      };
+
+      function showSlots(slots) {
+        const container = document.getElementById('container');
+        const status = document.getElementById('status');
+        
+        addLog("GASから応答を受信しました。データ数: " + (slots ? slots.length : 0) + "件");
+
+        if (!slots || slots.length === 0) {
+          status.innerHTML = '<span class="error">予約枠が見つかりませんでした。</span>';
+          addLog("原因候補: カレンダーに予定がない、タイトルが一致しない、または「空き時間」設定になっていない。");
+          return;
+        }
+
+        status.innerHTML = "<strong>枠が見つかりました！</strong>";
+        
+        slots.forEach(slot => {
+          const btn = document.createElement('button');
+          btn.className = 'slot-btn';
+          // 日付と時間を表示
+          btn.innerText = slot.date + " " + slot.startTime + " (" + slot.title + ")";
+          btn.onclick = function() {
+            alert(slot.title + " が選択されました（ID: " + slot.eventId + "）");
+          };
+          container.appendChild(btn);
+        });
+      }
+
+      function showError(error) {
+        document.getElementById('status').innerHTML = '<span class="error">通信エラーが発生しました。</span>';
+        addLog("エラー内容: " + error.message);
+      }
+
+      function addLog(msg) {
+        const content = document.getElementById('log-content');
+        if (content.innerText === "まだデータはありません") content.innerHTML = "";
+        content.innerHTML += "<div>> " + msg + "</div>";
+      }
+    </script>
+  </body>
+</html>

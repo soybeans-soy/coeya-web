@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>予約システム 完全セットアップマニュアル</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body { font-family: 'Noto Sans JP', sans-serif; background-color: #f8f9fa; color: #333; padding-bottom: 100px; }
+        .hero-section { background: linear-gradient(135deg, #2c3e50, #4ca1af); color: white; padding: 60px 0; margin-bottom: 40px; }
+        .step-number { background-color: #0d6efd; color: white; width: 40px; height: 40px; border-radius: 50%; display: inline-flex; justify-content: center; align-items: center; font-weight: bold; margin-right: 15px; font-size: 1.2rem; }
+        .instruction-card { border: none; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 30px; overflow: hidden; }
+        .card-header { background-color: #fff; border-bottom: 1px solid #eee; padding: 20px; font-weight: bold; font-size: 1.2rem; display: flex; align-items: center; }
+        .code-block { background-color: #2d2d2d; color: #f8f8f2; padding: 15px; border-radius: 6px; font-family: 'Courier New', Courier, monospace; overflow-x: auto; margin: 15px 0; position: relative; }
+        .warning-box { background-color: #fff3cd; border-left: 5px solid #ffc107; padding: 15px; border-radius: 4px; margin: 15px 0; }
+        .important-text { color: #d63384; font-weight: bold; }
+        .nav-link { color: #495057; }
+        .nav-link.active { font-weight: bold; color: #0d6efd; }
+        .sticky-sidebar { position: sticky; top: 20px; }
+        img.placeholder { width: 100%; height: auto; border: 1px solid #ddd; border-radius: 8px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+
+    <header class="hero-section text-center">
+        <div class="container">
+            <h1 class="display-5 fw-bold mb-3"><i class="fas fa-book-reader"></i> 予約システム構築マニュアル</h1>
+            <p class="lead">初心者対応・ステップバイステップ完全ガイド</p>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-3 d-none d-lg-block">
+                <nav class="sticky-sidebar">
+                    <div class="list-group shadow-sm">
+                        <a href="#step1" class="list-group-item list-group-item-action">Step 1: 準備するもの</a>
+                        <a href="#step2" class="list-group-item list-group-item-action">Step 2: Googleカレンダーの設定</a>
+                        <a href="#step3" class="list-group-item list-group-item-action">Step 3: スプレッドシートの準備</a>
+                        <a href="#step4" class="list-group-item list-group-item-action">Step 4: GAS（プログラム）の設置</a>
+                        <a href="#step5" class="list-group-item list-group-item-action">Step 5: コードの書き換え</a>
+                        <a href="#step6" class="list-group-item list-group-item-action">Step 6: 権限設定とデプロイ</a>
+                        <a href="#step7" class="list-group-item list-group-item-action">Step 7: HTMLファイルの仕上げ</a>
+                        <a href="#step8" class="list-group-item list-group-item-action">Step 8: 動作確認と運用</a>
+                    </div>
+                </nav>
+            </div>
+
+            <div class="col-lg-9">
+
+                <div class="alert alert-info shadow-sm">
+                    <strong><i class="fas fa-info-circle"></i> はじめに</strong><br>
+                    このマニュアルは、ご用意いただいた「GASファイル（テキスト）」と「HTMLファイル」を使って、誰でも予約システムを立ち上げられるように書かれています。手順を飛ばさずに一つずつ進めてください。
+                </div>
+
+                <section id="step1" class="instruction-card card">
+                    <div class="card-header">
+                        <span class="step-number">1</span> 必要なものを準備する
+                    </div>
+                    <div class="card-body">
+                        <p>作業を始める前に、以下のファイルがお手元にあるか確認してください。</p>
+                        <ul>
+                            <li><strong>予約システム動作版.txt</strong> <span class="badge bg-secondary">サーバー側プログラム</span></li>
+                            <li><strong>booking_system_local_working_ver.html</strong> <span class="badge bg-primary">予約画面デザイン</span></li>
+                        </ul>
+                        <p>また、以下のGoogleサービスを使用します（無料のGoogleアカウントでOKです）。</p>
+                        <ul>
+                            <li>Google カレンダー</li>
+                            <li>Google スプレッドシート（予約ログ用）</li>
+                            <li>Google Apps Script（プログラムを動かす場所）</li>
+                        </ul>
+                    </div>
+                </section>
+
+                <section id="step2" class="instruction-card card">
+                    <div class="card-header">
+                        <span class="step-number">2</span> Googleカレンダーの設定
+                    </div>
+                    <div class="card-body">
+                        <p>予約を受け付ける専用のカレンダーを作成し、その「ID」を取得します。</p>
+                        
+                        <h5>2-1. 新しいカレンダーを作る</h5>
+                        <ol>
+                            <li>PCで <a href="https://calendar.google.com/" target="_blank">Googleカレンダー</a> を開きます。</li>
+                            <li>左側のメニューにある「他のカレンダー」の横の <strong>＋</strong> をクリックし、<strong>「新しいカレンダーを作成」</strong>を選びます。</li>
+                            <li>名前に「レッスン予約用」などわかりやすい名前をつけ、<strong>「カレンダーを作成」</strong>ボタンを押します。</li>
+                        </ol>
+
+                        <h5>2-2. カレンダーIDをコピーする（重要！）</h5>
+                        <ol>
+                            <li>左側メニューに今作ったカレンダーが表示されるので、名前をクリック（または「︙」から「設定と共有」）します。</li>
+                            <li>設定画面を下にスクロールしていくと、<strong>「カレンダーの統合」</strong>という項目があります。</li>
+                            <li>その中に <strong>「カレンダーID」</strong> という項目があります（例: <code>c_12345...@group.calendar.google.com</code>）。</li>
+                            <li><span class="important-text">このIDをコピーして、メモ帳などに控えておいてください。</span>後で使います。</li>
+                        </ol>
+
+                        <h5>2-3. 予約枠（空き時間）を作る</h5>
+                        <div class="warning-box">
+                            <strong>ポイント:</strong> このシステムでは、カレンダーに登録した予定を「予約可能な枠」として扱います。
+                        </div>
+                        <ol>
+                            <li>カレンダーの表示画面に戻ります。</li>
+                            <li>予約を受け付けたい日の日付をクリックします。</li>
+                            <li>タイトルに <strong>予約可能枠</strong> と入力します（一字一句間違わないように！）。</li>
+                            <li>時間は<strong>「終日」</strong>にチェックを入れるか、時間を指定（例：13:00〜18:00）して保存します。</li>
+                            <li>この「予約可能枠」という予定が入っている日時だけ、お客様は予約できるようになります。</li>
+                        </ol>
+                    </div>
+                </section>
+
+                <section id="step3" class="instruction-card card">
+                    <div class="card-header">
+                        <span class="step-number">3</span> スプレッドシートの準備
+                    </div>
+                    <div class="card-body">
+                        <p>予約が入ったときに記録を残すための台帳を作ります。</p>
+                        <ol>
+                            <li><a href="https://sheets.new" target="_blank">Googleスプレッドシート</a> を新規作成します。</li>
+                            <li>ファイル名を「予約ログ」などに変更します。</li>
+                            <li>シート（タブ）の名前を <strong>予約ログ</strong> に変更します（画面左下の「シート1」をダブルクリック）。</li>
+                            <li>ブラウザのアドレスバー（URL）を見てください。</li>
+                            <li><code>https://docs.google.com/spreadsheets/d/</code> の後ろにある、長い英数字の羅列がIDです。</li>
+                        </ol>
+                        <div class="code-block">
+                            https://docs.google.com/spreadsheets/d/<span style="color:#ff79c6; font-weight:bold;">1A2b3C4d5E... (この部分)</span>/edit#gid=0
+                        </div>
+                        <p><span class="important-text">このID部分だけをコピーして、メモ帳に控えてください。</span></p>
+                    </div>
+                </section>
+
+                <section id="step4" class="instruction-card card">
+                    <div class="card-header">
+                        <span class="step-number">4</span> GAS（プログラム）の設置
+                    </div>
+                    <div class="card-body">
+                        <p>ここがエンジンの部分です。手順通りやれば難しくありません。</p>
+
+                        <h5>4-1. プロジェクトの作成</h5>
+                        <ol>
+                            <li><a href="https://script.google.com/" target="_blank">Google Apps Script (GAS)</a> のページを開きます。</li>
+                            <li>左上の <strong>「新しいプロジェクト」</strong> をクリックします。</li>
+                            <li>画面左上の「無題のプロジェクト」をクリックし、「予約システム」など名前をつけます。</li>
+                        </ol>
+
+                        <h5>4-2. 設定ファイル (appsscript.json) の表示</h5>
+                        <p>通常は隠れている設定ファイルを表示させます。</p>
+                        <ol>
+                            <li>画面左端のメニューから <strong>歯車アイコン（プロジェクトの設定）</strong> をクリックします。</li>
+                            <li>「全般設定」の中にある <strong>「『appsscript.json』マニフェスト ファイルをエディタで表示する」</strong> にチェックを入れます。</li>
+                            <li>左端メニューの <strong>「＜＞（エディタ）」</strong> アイコンをクリックして戻ります。</li>
+                            <li>ファイル一覧に <code>appsscript.json</code> が表示されているはずです。</li>
+                        </ol>
+
+                        <h5>4-3. コードの貼り付け</h5>
+                        <p>お手元のファイル <code>予約システム動作版.txt</code> を開いてください。中身に2つのセクションがあります。</p>
+                        
+                        <div class="alert alert-secondary">
+                            <h6><i class="fas fa-file-code"></i> 1つ目: appsscript.json</h6>
+                            <ol>
+                                <li>GAS画面で <code>appsscript.json</code> をクリックして開きます。</li>
+                                <li>元々あるコードを全て消します。</li>
+                                <li>テキストファイルの <code>appsscript.json</code> の部分（波括弧 <code>{ ... }</code> で囲まれた部分すべて）をコピーして貼り付けます。</li>
+                            </ol>
+                        </div>
+
+                        <div class="alert alert-secondary">
+                            <h6><i class="fas fa-file-code"></i> 2つ目: コード.gs</h6>
+                            <ol>
+                                <li>GAS画面で <code>コード.gs</code> をクリックして開きます。</li>
+                                <li>元々ある <code>function myFunction()...</code> などを全て消します。</li>
+                                <li>テキストファイルの <code>コード.gs</code> の部分（一番下の行まで全て）をコピーして貼り付けます。</li>
+                            </ol>
+                        </div>
+                        <p>貼り付け終わったら、画面上部の <strong>フロッピーアイコン（保存）</strong> を押してください。</p>
+                    </div>
+                </section>
+
+                <section id="step5" class="instruction-card card">
+                    <div class="card-header">
+                        <span class="step-number">5</span> IDと設定の書き換え
+                    </div>
+                    <div class="card-body">
+                        <p>GASに貼り付けた <code>コード.gs</code> の上部にある設定エリアを、あなたの情報に書き換えます。</p>
+                        
+                        <div class="code-block">
+// =======================================================<br>
+// 【設定】カレンダーIDとタイムゾーン<br>
+// =======================================================<br>
+const CALENDAR_ID = '<span style="color:#ff79c6;">ここにStep2で控えたカレンダーIDを貼る</span>'; <br>
+const TIME_ZONE = 'Asia/Tokyo';<br>
+const SENDER_EMAIL = '<span style="color:#ff79c6;">あなたのGmailアドレス</span>'; <br>
+...<br>
+const LOG_SHEET_ID = '<span style="color:#ff79c6;">ここにStep3で控えたシートIDを貼る</span>'; 
+                        </div>
+
+                        <ul>
+                            <li><code>CALENDAR_ID</code>: <code>' '</code>の中にIDを入れます。</li>
+                            <li><code>SENDER_EMAIL</code>: <strong>必ずこのGASを作成しているGoogleアカウントのメールアドレス</strong>にしてください。</li>
+                            <li><code>LOG_SHEET_ID</code>: シートのIDを入れます。</li>
+                            <li><code>BUSINESS_START_HOUR</code>: 終日イベントを作ったときの開始時間（例: 10）。</li>
+                            <li><code>BUSINESS_END_HOUR</code>: 終了時間（例: 21）。</li>
+                        </ul>
+                        <p>書き換えたら、再度 <strong>保存</strong> してください。</p>
+                    </div>
+                </section>
+
+                <section id="step6" class="instruction-card card">
+                    <div class="card-header">
+                        <span class="step-number">6</span> 権限の承認とデプロイ
+                    </div>
+                    <div class="card-body">
+                        <p>このプログラムがメールを送ったりカレンダーを見たりする許可を与え、Web上で使えるようにします。</p>
+
+                        <h5>6-1. 初回の承認（手動実行）</h5>
+                        <ol>
+                            <li><code>コード.gs</code> の一番下に <code>function testMail() {...}</code> という部分があります。</li>
+                            <li>その中のメールアドレスを、自分宛てに書き換えてください（テスト送信用）。</li>
+                            <li>画面上部のツールバーにあるドロップダウンリストから <strong>testMail</strong> を選択します。</li>
+                            <li><strong>「▶ 実行」</strong> ボタンを押します。</li>
+                            <li><strong>「承認が必要です」</strong> という画面が出ます。「権限を確認」をクリック。</li>
+                            <li>Googleアカウントを選びます。</li>
+                            <li>「このアプリはGoogleで確認されていません」と出たら、左下の <strong>「詳細」</strong> を押し、<strong>「（プロジェクト名）に移動（安全ではない）」</strong> をクリックします。</li>
+                            <li>「許可」ボタンを押します。</li>
+                            <li>画面下のログに「実行完了」と出れば成功です。</li>
+                        </ol>
+
+                        <h5>6-2. ウェブアプリとしてデプロイ（公開）</h5>
+                        <div class="warning-box">
+                            <strong>最重要ステップです！</strong> 設定を間違えると動きません。
+                        </div>
+                        <ol>
+                            <li>画面右上の <strong>「デプロイ」</strong> ボタンを押し、<strong>「新しいデプロイ」</strong> を選びます。</li>
+                            <li>左側の歯車アイコンの横で <strong>「ウェブアプリ」</strong> を選びます。</li>
+                            <li>設定を以下のようにします：
+                                <ul>
+                                    <li><strong>次のユーザーとして実行:</strong> 「自分 (Me)」</li>
+                                    <li><strong>アクセスできるユーザー:</strong> <span class="important-text">「全員 (Anyone)」</span> ※ここを間違えないでください！</li>
+                                </ul>
+                            </li>
+                            <li><strong>「デプロイ」</strong> ボタンを押します。</li>
+                            <li>しばらくすると <strong>「ウェブアプリ URL」</strong> が表示されます（<code>https://script.google.com/.../exec</code> で終わるURL）。</li>
+                            <li><span class="important-text">このURLをコピーしてください。</span></li>
+                        </ol>
+                    </div>
+                </section>
+
+                <section id="step7" class="instruction-card card">
+                    <div class="card-header">
+                        <span class="step-number">7</span> HTMLファイルの仕上げ
+                    </div>
+                    <div class="card-body">
+                        <p>最後の仕上げです。予約画面のデザインファイル（HTML）に、先ほど発行したURLを埋め込みます。</p>
+                        <ol>
+                            <li>お手元のファイル <code>booking_system_local_working_ver.html</code> を右クリックし、「プログラムから開く」→「メモ帳」などで開きます（VS Codeなどのエディタがあれば尚良し）。</li>
+                            <li>ファイルの最後の方、<code>&lt;script&gt;</code> タグのすぐ下を探してください。</li>
+                            <li>以下のような行があります。</li>
+                        </ol>
+                        <div class="code-block">
+&lt;script&gt;<br>
+    // ★★★ ここに先ほどコピーしたGASのウェブアプリURLを貼り付けてください ★★★<br>
+    const GAS_API_URL = "<span style="color:#ff79c6;">https://script.google.com/macros/s/xxxx.../exec</span>";
+                        </div>
+                        <ol start="4">
+                            <li><code>" "</code> の中身を、先ほどコピーしたウェブアプリURLに書き換えます。</li>
+                            <li>ファイルを <strong>上書き保存</strong> します。</li>
+                        </ol>
+                    </div>
+                </section>
+
+                <section id="step8" class="instruction-card card">
+                    <div class="card-header">
+                        <span class="step-number">8</span> 動作確認と運用
+                    </div>
+                    <div class="card-body">
+                        <p>お疲れ様でした！これで準備完了です。</p>
+
+                        <h5>8-1. 予約テスト</h5>
+                        <ol>
+                            <li>保存した <code>booking_system_local_working_ver.html</code> をダブルクリックして、ブラウザ（Chromeなど）で開きます。</li>
+                            <li>綺麗な予約画面が表示されます。</li>
+                            <li>コースを選び、カレンダーの日付（Step 2で作った「予約可能枠」の日）を選びます。</li>
+                            <li>名前やメールを入力して「予約を確定する」を押します。</li>
+                        </ol>
+
+                        <h5>8-2. 成功の確認</h5>
+                        <ul>
+                            <li>✅ 画面に「完了しました」と出る。</li>
+                            <li>✅ 入力したメールアドレスに「予約確定メール」が届く。</li>
+                            <li>✅ Googleカレンダーに、お客様の名前が入った予定が自動作成されている。</li>
+                            <li>✅ スプレッドシートに行が追加されている。</li>
+                        </ul>
+                        <p>これら全てが確認できれば、システムは完璧に動作しています！</p>
+                        
+                        <hr>
+                        
+                        <h5>今後の修正について</h5>
+                        <ul>
+                            <li><strong>デザインを変えたい：</strong> HTMLファイルを修正します。</li>
+                            <li><strong>カレンダーを変えたい：</strong> GASの <code>CALENDAR_ID</code> を変えて、<strong>必ず「新しいデプロイ」</strong>をしてください。</li>
+                            <li><strong>HTMLをサーバーにアップロード：</strong> このHTMLファイルは、レンタルサーバーなどにアップロードしてもそのまま動きます。</li>
+                        </ul>
+                    </div>
+                </section>
+
+                <div class="text-center py-5">
+                    <p class="text-muted">Created for Coeya Booking System</p>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // スムーズスクロール用スクリプト
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,83 @@
+const CALENDAR_ID = 'cc2520ac972443f5539a342d7ad267c1d4c3b1ed56c855b367b8f683ce16ae47@group.calendar.google.com'; 
+const TIME_ZONE = 'Asia/Tokyo'; 
+const SENDER_EMAIL = 'trextacy@gmail.com';
+
+function doGet() {
+  return HtmlService.createHtmlOutputFromFile('index')
+    .setTitle('レッスン予約 | 声家 (coeya)')
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+function getAvailableSlots() {
+  const calendar = CalendarApp.getCalendarById(CALENDAR_ID);
+  if (!calendar) return [];
+
+  const now = new Date();
+  const end = new Date(now.getTime() + (60 * 24 * 60 * 60 * 1000));
+  const events = calendar.getEvents(now, end);
+  
+  const slots = [];
+  events.forEach(event => {
+    try {
+      if (event && typeof event.getStart === 'function') {
+        const title = event.getTitle() || "";
+        
+        if (title.indexOf("予約") !== -1) {
+          const start = event.getStart();
+          
+          // ★終日予定かどうかの判定と処理
+          let startTimeStr;
+          if (event.isAllDayEvent()) {
+            startTimeStr = "09:00"; // 終日予定の場合はデフォルトで9:00開始とする（お好みで変更可）
+          } else {
+            startTimeStr = Utilities.formatDate(start, TIME_ZONE, 'HH:mm');
+          }
+
+          slots.push({
+            eventId: event.getId(),
+            date: Utilities.formatDate(start, TIME_ZONE, 'yyyy-MM-dd'),
+            startTime: startTimeStr,
+            endTime: event.isAllDayEvent() ? "18:00" : Utilities.formatDate(event.getEnd(), TIME_ZONE, 'HH:mm'),
+            title: title
+          });
+        }
+      }
+    } catch (e) {
+      console.log("スキップ: " + e.message);
+    }
+  });
+
+  slots.sort((a, b) => new Date(a.date + ' ' + a.startTime) - new Date(b.date + ' ' + b.startTime));
+  return slots;
+}
+
+function createBooking(data) {
+  try {
+    const calendar = CalendarApp.getCalendarById(CALENDAR_ID);
+    const event = calendar.getEventById(data.eventId);
+    if (!event) return { status: 'error', error: '枠が見つかりませんでした。' };
+
+    const start = event.getStart();
+    event.setTitle(`【予約】${data.courseName} / ${data.name}様`);
+    event.setDescription(`受講者: ${data.name}\nメール: ${data.email}\n備考: ${data.notes}`);
+    
+    // 予約が入った時に「予定あり」に変えて他の人が予約できないようにする
+    if (event.isAllDayEvent()) {
+      // 終日予定だった場合は、特定の時間に固定して「予定あり」にする
+      const bookedDate = new Date(start.getFullYear(), start.getMonth(), start.getDate(), 9, 0, 0);
+      event.setAllDayDate(bookedDate); // 一旦解除はできないため、タイトル等で運用
+    }
+    
+    try { event.addGuest(data.email); } catch(e) {}
+
+    const dateStr = Utilities.formatDate(start, TIME_ZONE, 'yyyy/MM/dd HH:mm');
+    const body = `${data.name} 様\n\n予約が確定しました。\n日時：${dateStr}\nコース：${data.courseName}`;
+    MailApp.sendEmail(data.email, "予約確定通知", body);
+    MailApp.sendEmail(SENDER_EMAIL, "【新規予約】" + data.name + "様", body + "\n備考: " + data.notes);
+
+    return { status: 'success' };
+  } catch (e) {
+    return { status: 'error', error: e.toString() };
+  }
+}

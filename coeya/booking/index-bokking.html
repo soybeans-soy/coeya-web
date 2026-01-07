@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <base target="_top"> 
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voix en Soie - レッスン予約</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Montserrat:wght=500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script> 
+    
+<style>
+    /* LPのカスタムカラーテーマを統合 */
+    :root {
+        --primary-color: #e2b435; /* Gold - アクション/有効時のメインカラー */
+        --secondary-color: #eff079; /* Pale Yellow - 強調/注意喚起の背景色 */
+        --disabled-color: #b5b5b5; /* Middle Gray - 無効時の色 */
+        --available-color: #0b5d85; /* Mint Green - 空き枠の色 */
+        --text-color: #000000;
+        --light-bg: #f8f9fa;
+        --button-radius: 0.375rem; /* Bootstrapデフォルトの角丸サイズに設定 */
+    }
+
+    body { 
+        font-family: 'Noto Sans JP', sans-serif; 
+        background-color: var(--light-bg); 
+        padding-top: 20px; 
+    }
+    
+    /* カスタムカラーユーティリティ (使用箇所を減らすため一旦削除) */
+    
+    /* ステップ共通スタイル */
+    .step-section { display: none; }
+    .active-step { display: block; }
+
+    /* カード選択スタイル */
+    .course-card, .instructor-card { 
+        cursor: pointer; 
+        transition: transform 0.2s, box-shadow 0.2s; 
+        border-left: 5px solid transparent;
+        min-height: 150px;
+        /* 形状はBootstrapのカードデフォルトに任せる */
+    }
+    .course-card.selected, .instructor-card.selected { 
+        border-left-color: var(--primary-color); 
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2); 
+        background-color: #f0f8ff; 
+    }
+
+    /* 日時選択スタイル */
+    .calendar-header { background-color: var(--primary-color); color: white; padding: 10px; border-radius: 0.375rem 0.375rem 0 0; font-weight: bold; }
+    .slot-button { width: 100%; margin-bottom: 8px; font-weight: bold; }
+    
+    /* -------------------------------------- */
+    /* ★ 色の統一 (テーマカラーの上書き) ★ */
+    /* -------------------------------------- */
+    
+    /* 全ての次へ/確定ボタン(btn-secondary/btn-primary)をゴールドにする */
+    .btn-secondary, .btn-primary {
+        background-color: var(--primary-color) !important;
+        border-color: var(--primary-color) !important;
+        color: white !important;
+        font-weight: bold;
+    }
+    .btn-secondary:hover, .btn-primary:hover {
+        background-color: #c99c2d !important; /* ホバーで少し濃いゴールド */
+        border-color: #c99c2d !important;
+    }
+    
+    /* 次へ/確定ボタン（DISABLED時）：Middle Grayを適用 */
+    .btn-secondary:disabled,
+    .btn-primary:disabled { 
+        background-color: var(--disabled-color) !important; 
+        border-color: var(--disabled-color) !important; 
+        color: #777777 !important; 
+        opacity: 1 !important; 
+        cursor: not-allowed; 
+        box-shadow: none; 
+    }
+    
+    /* -------------------------------------- */
+    /* ★ カレンダーの空き枠と選択中を統一 ★ */
+    /* -------------------------------------- */
+
+    /* 予約可能日 (カレンダー) の色をMint Greenに統一 */
+    .calendar-day.bg-success { 
+        background-color: var(--available-color) !important; 
+        border-color: var(--available-color) !important; 
+    }
+    /* 選択中の日付の色をPrimary Color(Gold)に統一 */
+    .calendar-day.bg-info { 
+        background-color: var(--primary-color) !important; 
+        border-color: var(--primary-color) !important; 
+    } 
+    /* 選択中の時間帯ボタンの色をPrimary Color(Gold)に統一 */
+    .slot-button.btn-primary {
+        background-color: var(--primary-color) !important; 
+        border-color: var(--primary-color) !important; 
+        color: white !important;
+    }
+
+
+    /* STEP 4 特殊デザイン */
+    .text-primary-custom { color: var(--primary-color) !important; }
+    #summary-display-container {
+        border-left-color: var(--primary-color) !important;
+        background-color: #fff;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    #policy-agree-container {
+        background-color: var(--secondary-color) !important;
+        border-color: #dc3545 !important; 
+    }
+    
+    /* 戻るボタン (アウトラインボタン) のスタイルはBootstrapデフォルトに任せる */
+</style>
+
+</head>
+<body>
+
+<div class="container">
+    <h2 class="text-center mb-4 text-primary-custom"><i class="fas fa-calendar-alt me-2"></i>Voix en Soie - レッスン予約</h2>
+    <div class="alert alert-info" id="message-area" style="display:none;"></div>
+    
+    <div class="progress mb-4" role="progressbar" aria-label="予約ステップ" aria-valuenow="25" aria-valuemin="0" aria-valuemax="100">
+        <div class="progress-bar bg-primary-custom" id="progress-bar" style="width: 25%"></div>
+    </div>
+
+    <div id="step-course" class="step-section active-step">
+        <h3 class="mb-3"><i class="fas fa-graduation-cap me-2"></i>STEP 1: コースを選択してください</h3>
+        <div class="row g-4" id="course-selection-container"></div>
+        <button class="btn btn-secondary mt-4" onclick="nextStep(2)" id="course-next-btn" disabled><i class="fas fa-arrow-right me-2"></i>次へ</button>
+    </div>
+
+    <div id="step-instructor" class="step-section">
+        <h3 class="mb-3"><i class="fas fa-chalkboard-teacher me-2"></i>STEP 2: 講師を選択してください</h3>
+        <div class="row g-4" id="instructor-selection-container"></div>
+        <div class="mt-4">
+            <button class="btn btn-outline-secondary me-2" onclick="prevStep(1)"><i class="fas fa-arrow-left me-2"></i>戻る</button>
+            <button class="btn btn-secondary" onclick="nextStep(3)" id="instructor-next-btn" disabled><i class="fas fa-arrow-right me-2"></i>次へ</button>
+        </div>
+    </div>
+
+    <div id="step-datetime" class="step-section position-relative">
+        <h3 class="mb-3"><i class="fas fa-clock me-2"></i>STEP 3: 日付と時間を選択してください</h3>
+        <div id="loading-datetime" class="loading-overlay" style="display: none;"><i class="fas fa-spinner fa-spin fa-3x"></i></div>
+        <div class="card p-4">
+            <div class="calendar-header d-flex justify-content-between align-items-center mb-3">
+                <button class="btn btn-light btn-sm" id="prev-month-btn"><i class="fas fa-chevron-left"></i></button>
+                <span id="current-month-year"></span>
+                <button class="btn btn-light btn-sm" id="next-month-btn"><i class="fas fa-chevron-right"></i></button>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-bordered text-center calendar-table" id="calendar-body">
+                    <thead>
+                        <tr><th>日</th><th>月</th><th>火</th><th>水</th><th>木</th><th>金</th><th>土</th></tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <div id="time-slots-container" class="mt-4" style="min-height: 100px;">
+                <p class="text-muted text-center" id="slot-placeholder">日付を選択してください。</p>
+            </div>
+            
+            <div class="mt-4">
+                <button class="btn btn-outline-secondary me-2" onclick="prevStep(2)"><i class="fas fa-arrow-left me-2"></i>戻る</button>
+                <button class="btn btn-secondary" onclick="nextStep(4)" id="datetime-next-btn" disabled><i class="fas fa-arrow-right me-2"></i>次へ</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="step-info" class="step-section position-relative">
+        <h3 class="mb-3"><i class="fas fa-clipboard-list me-2"></i>STEP 4: 予約情報を入力してください</h3>
+        <div id="loading-info" class="loading-overlay" style="display: none;"><i class="fas fa-spinner fa-spin fa-3x"></i></div>
+        <div class="card p-4">
+            
+            <div class="card bg-light p-3 mb-4 border-start border-5 border-primary-custom" id="summary-display-container">
+                <h5 class="fw-bold text-primary-custom mb-2"><i class="fas fa-clipboard-check me-2"></i>ご予約内容の最終確認</h5>
+                <div id="summary-display">
+                    </div>
+            </div>
+
+            <form id="booking-form">
+                <div class="mb-3">
+                    <label for="student-name" class="form-label">お名前 <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="student-name" required>
+                </div>
+                <div class="mb-3">
+                    <label for="student-email" class="form-label">メールアドレス <span class="text-danger">*</span></label>
+                    <input type="email" class="form-control" id="student-email" required>
+                </div>
+                <div class="mb-3">
+                    <label for="notes" class="form-label">備考/特記事項</label>
+                    <textarea class="form-control" id="notes" rows="3"></textarea>
+                </div>
+
+                <div class="form-check p-3 mb-4 bg-secondary-custom border border-3 border-danger rounded shadow-sm align-items-center d-flex" id="policy-agree-container">
+                    <input class="form-check-input flex-shrink-0 me-3" type="checkbox" id="policy-agree" required>
+                    <label class="form-check-label fw-bold small" for="policy-agree" style="line-height: 1.5;">
+                        <i class="fas fa-exclamation-triangle text-danger me-2"></i>
+                        キャンセルポリシーに同意します。 <span class="text-danger">*</span>
+                        <p class="small text-muted mt-1 mb-0 fw-normal">※ご予約確定前に必ずご確認ください。チェックがない場合、予約を確定できません。</p>
+                    </label>
+                </div>
+                
+                <div class="mt-4">
+                    <button type="button" class="btn btn-outline-secondary me-2" onclick="prevStep(3)"><i class="fas fa-arrow-left me-2"></i>戻る</button>
+                    <button type="submit" class="btn btn-primary bg-primary-custom border-primary-custom" id="submit-booking-btn"><i class="fas fa-paper-plane me-2"></i>この内容で予約を確定する</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div id="step-complete" class="step-section">
+        <div class="alert alert-success text-center p-5">
+            <i class="fas fa-check-circle fa-4x mb-3"></i>
+            <h3>予約が完了しました！</h3>
+            <p class="lead">ご登録いただいたメールアドレスに、予約確認メールが送信されました。ご確認ください。</p>
+            <p class="small">予約内容のキャンセル・変更は、届いたメールのカレンダー招待から行うことができます。</p>
+            <!--
+            <a href="#" class="btn btn-primary bg-primary-custom border-primary-custom mt-3" onclick="window.location.reload(); return false;">最初に戻る</a>
+            -->
+        </div>
+    </div>
+</div>
+
+<script>
+    // **********************************************
+    // 1. 【設定】コース・講師情報 (Code.gs側の設定と同期)
+    // **********************************************
+    const LESSON_DURATIONS = [
+        { id: 't-60-exp', name: '体験レッスン', duration: 60, price: 5000 },
+        { id: 't-60-std', name: '通常レッスン', duration: 60, price: 8000 },
+        { id: 't-90-pro', name: 'プロ養成コース', duration: 90, price: 12000 },
+        { id: 't-30-opt', name: '特別短縮コース', duration: 30, price: 4000 }
+    ];
+    
+    const INSTRUCTORS = [
+        { id: 'instructor01', name: '後藤 菜美 先生' },
+    ];
+
+    // **********************************************
+    // 2. 状態管理変数
+    // **********************************************
+    let currentStep = 1;
+    let selectedCourse = null;
+    let selectedInstructor = null;
+    let selectedDate = null;
+    let selectedTime = null;
+    let availableSlots = {}; 
+    let currentDisplayDate = new Date(); 
+    const TODAY = new Date();
+    TODAY.setHours(0, 0, 0, 0);
+    // Code.gsで定義した最小分割単位と同期させる必要があります
+    const MIN_SLOT_DURATION = 60; 
+
+    // **********************************************
+    // 3. UI操作ロジック
+    // **********************************************
+    const STEP_IDS = { 1: 'step-course', 2: 'step-instructor', 3: 'step-datetime', 4: 'step-info', 5: 'step-complete' };
+    const MONTH_NAMES = ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"];
+    const DAY_NAMES = ["日", "月", "火", "水", "木", "金", "土"];
+
+    document.addEventListener('DOMContentLoaded', () => {
+        renderCourseCards();
+        renderInstructorCards();
+        document.getElementById('prev-month-btn').addEventListener('click', () => changeMonth(-1));
+        document.getElementById('next-month-btn').addEventListener('click', () => changeMonth(1));
+        document.getElementById('booking-form').addEventListener('submit', handleFormSubmit);
+        fetchAvailableSlots();
+        updateProgressBar();
+    });
+
+    function updateProgressBar() {
+        const percent = (currentStep - 1) * 25;
+        document.getElementById('progress-bar').style.width = percent + '%';
+        document.getElementById('progress-bar').setAttribute('aria-valuenow', percent);
+    }
+
+function updateUI() {
+        Object.keys(STEP_IDS).forEach(stepNum => {
+            const stepElement = document.getElementById(STEP_IDS[stepNum]);
+            if (parseInt(stepNum) === currentStep) {
+                stepElement.classList.add('active-step');
+            } else {
+                stepElement.classList.remove('active-step');
+            }
+        });
+        updateProgressBar();
+
+        // ★【修正箇所】STEP 2 または 3 に移動した際に、講師リストと日程を再描画する処理を追加 ★
+        if (currentStep === 2) {
+            // STEP 2: 講師リストを表示
+            renderInstructorCards(); 
+            // 講師が1人の場合、自動選択されるため、ここでfetchAvailableSlotsも実行される。
+        } else if (currentStep === 3) {
+            // STEP 3: 日付選択へ戻った場合、カレンダーと空き枠を再描画
+            renderCalendar(); // カレンダーの描画 (fetchAvailableSlotsのSuccessHandler内で実行されるため、実質は不要だが整合性のため追加)
+            renderAvailableSlots(selectedDate); // 日付選択状態を維持し、空き枠一覧を更新
+        }
+        // ★ 修正箇所ここまで ★
+    }
+
+    function nextStep(step) {
+        if (!validateStep(currentStep)) return;
+        currentStep = step;
+        updateUI();
+        if (step === 4) { updateSummaryDisplay(); }
+    }
+
+    function prevStep(step) {
+        currentStep = step;
+        updateUI();
+    }
+
+    function validateStep(step) {
+        hideMessage();
+        if (step === 1 && !selectedCourse) { showMessage('error', 'コースを選択してください。'); return false; }
+        if (step === 2 && !selectedInstructor) { showMessage('error', '講師を選択してください。'); return false; }
+        if (step === 3 && (!selectedDate || !selectedTime)) { showMessage('error', '日付と時間を選択してください。'); return false; }
+        if (step === 4) {
+            const name = document.getElementById('student-name').value;
+            const email = document.getElementById('student-email').value;
+            if (!name || !email) { showMessage('error', 'お名前とメールアドレスは必須です。'); return false; }
+            if (!document.getElementById('policy-agree').checked) { showMessage('error', 'キャンセルポリシーに同意してください。'); return false; }
+        }
+        return true;
+    }
+
+    // --- コース/講師カードの表示 ---
+    function renderCourseCards() {
+        const container = document.getElementById('course-selection-container');
+        container.innerHTML = LESSON_DURATIONS.map(course => `
+            <div class="col-md-4">
+                <div class="card p-3 course-card" data-id="${course.id}" onclick="selectCourse('${course.id}')">
+                    <div class="card-body">
+                        <h5 class="card-title text-primary-custom">${course.name}</h5>
+                        <p class="card-text small mb-1">時間: ${course.duration}分</p>
+                        <p class="card-text small">料金: ${course.price.toLocaleString()}円</p>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function selectCourse(id) {
+        selectedCourse = LESSON_DURATIONS.find(c => c.id === id);
+        document.querySelectorAll('.course-card').forEach(card => {
+            card.classList.toggle('selected', card.dataset.id === id);
+        });
+        document.getElementById('course-next-btn').disabled = false;
+        selectedDate = null;
+        selectedTime = null;
+        renderAvailableSlots(null);
+        renderCalendar(); 
+    }
+    
+    function renderInstructorCards() {
+        const container = document.getElementById('instructor-selection-container');
+        container.innerHTML = INSTRUCTORS.map(inst => `
+            <div class="col-md-4">
+                <div class="card p-3 instructor-card" data-id="${inst.id}" onclick="selectInstructor('${inst.id}')">
+                    <div class="card-body">
+                        <h5 class="card-title">${inst.name}</h5>
+                        <p class="card-text small text-muted">担当講師</p>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+        if (INSTRUCTORS.length === 1) {
+            selectInstructor(INSTRUCTORS[0].id);
+        }
+    }
+
+    function selectInstructor(id) {
+        selectedInstructor = INSTRUCTORS.find(c => c.id === id);
+        document.querySelectorAll('.instructor-card').forEach(card => {
+            card.classList.toggle('selected', card.dataset.id === id);
+        });
+        document.getElementById('instructor-next-btn').disabled = false;
+        selectedDate = null;
+        selectedTime = null;
+        renderAvailableSlots(null);
+        fetchAvailableSlots(); 
+    }
+
+
+    // --- カレンダー描画 ---
+    function changeMonth(delta) {
+        currentDisplayDate.setMonth(currentDisplayDate.getMonth() + delta);
+        // 日付が変わったら、選択状態をリセット
+        selectedDate = null;
+        selectedTime = null;
+        
+        // 修正箇所: renderCalendar()の代わりに、データ再取得をトリガーし、
+        // 描画はデータ取得完了後(handleSuccessFetch内)に実行されるようにする
+        fetchAvailableSlots(); 
+        
+        renderAvailableSlots(null);
+        hideMessage();
+    }
+
+    function renderCalendar() {
+        const calendarBody = document.querySelector('#calendar-body tbody');
+        calendarBody.innerHTML = ''; 
+        
+        const year = currentDisplayDate.getFullYear();
+        const month = currentDisplayDate.getMonth();
+        const firstDayOfMonth = new Date(year, month, 1);
+        const lastDayOfMonth = new Date(year, month + 1, 0);
+        
+        document.getElementById('current-month-year').textContent = `${year}年 ${MONTH_NAMES[month]}`;
+        
+        let date = 1;
+        for (let i = 0; i < 6; i++) { 
+            const row = calendarBody.insertRow();
+            let hasDate = false;
+
+            for (let j = 0; j < 7; j++) { 
+                const cell = row.insertCell();
+                cell.classList.add('p-1', 'calendar-cell', 'text-center'); 
+                cell.style.height = '40px'; 
+
+                if (i === 0 && j < firstDayOfMonth.getDay()) {
+                    cell.textContent = '';
+                } else if (date > lastDayOfMonth.getDate()) {
+                    cell.textContent = '';
+                } else {
+                    const currentDate = new Date(year, month, date);
+                    currentDate.setHours(0, 0, 0, 0); 
+                    
+                    const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
+                    const slots = availableSlots[dateKey];
+
+                    cell.innerHTML = `<div>${date}</div>`;
+                    cell.classList.add('calendar-day');
+
+                    if (currentDate < TODAY) {
+                        cell.classList.add('text-muted');
+                    }
+                    else if (slots && slots.length > 0) {
+                        cell.classList.add('bg-success', 'text-white'); 
+                        cell.style.cursor = 'pointer'; 
+                        cell.setAttribute('data-date', dateKey);
+                        cell.onclick = () => selectDate(dateKey);
+                    } else {
+                        cell.classList.add('text-muted');
+                    }
+                    
+                    if (selectedDate === dateKey) {
+                        cell.classList.remove('bg-success', 'text-white');
+                        cell.classList.add('bg-info', 'text-white');
+                    }
+
+                    date++;
+                    hasDate = true;
+                }
+            }
+            if (!hasDate) break; 
+        }
+    }
+
+    function selectDate(dateKey) {
+        selectedDate = dateKey;
+        selectedTime = null; 
+        document.querySelectorAll('.calendar-day').forEach(cell => {
+            if (cell.classList.contains('bg-info')) {
+                cell.classList.remove('bg-info', 'text-white');
+                const cellDateKey = cell.getAttribute('data-date');
+                if (cellDateKey && availableSlots[cellDateKey] && availableSlots[cellDateKey].length > 0) {
+                     cell.classList.add('bg-success', 'text-white');
+                } else {
+                     cell.classList.add('text-muted');
+                }
+            }
+            if (cell.getAttribute('data-date') === dateKey) {
+                cell.classList.remove('bg-success', 'text-muted');
+                cell.classList.add('bg-info', 'text-white');
+            }
+        });
+        renderAvailableSlots(dateKey);
+    }
+    
+    // 連続空き枠チェックロジック
+    function renderAvailableSlots(dateKey) {
+        const container = document.getElementById('time-slots-container');
+        document.getElementById('datetime-next-btn').disabled = true;
+        
+        if (!selectedCourse) {
+            container.innerHTML = '<p class="text-muted text-center" id="slot-placeholder">コースを選択してから日付を選択してください。</p>';
+            return;
+        }
+
+        if (!dateKey || !availableSlots[dateKey] || availableSlots[dateKey].length === 0) {
+            container.innerHTML = '<p class="text-muted text-center" id="slot-placeholder">選択された日付に空き枠はありません。</p>';
+            return;
+        }
+
+        const availableTimes = availableSlots[dateKey].sort(); 
+        const requiredDuration = selectedCourse.duration; 
+        const minSlotDuration = MIN_SLOT_DURATION; 
+
+        const validSlots = [];
+
+        availableTimes.forEach(time => {
+            const timeParts = time.split(':').map(Number);
+            let startTimeInMinutes = timeParts[0] * 60 + timeParts[1];
+            
+            const requiredEndTimeInMinutes = startTimeInMinutes + requiredDuration;
+            
+            let isSlotValid = true;
+            let currentTimeInMinutes = startTimeInMinutes;
+            
+            while (currentTimeInMinutes < requiredEndTimeInMinutes) {
+                
+                const hour = Math.floor(currentTimeInMinutes / 60);
+                const minute = currentTimeInMinutes % 60;
+                const checkTimeStr = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+                
+                // 必要な60分区間が availableTimes に存在しない場合、無効
+                if (!availableTimes.includes(checkTimeStr)) {
+                    isSlotValid = false;
+                    break;
+                }
+                
+                // 次の60分区間に移動
+                currentTimeInMinutes += minSlotDuration;
+            }
+
+            if (isSlotValid) {
+                validSlots.push(time);
+            }
+        });
+
+
+        if (validSlots.length === 0) {
+            container.innerHTML = '<p class="text-muted text-center" id="slot-placeholder">選択されたコースでは空き枠がありません。別のコースか日付を選択してください。</p>';
+            return;
+        }
+
+        container.innerHTML = `
+            <p class="fw-bold">空き時間帯 (${dateKey}):</p>
+            <div class="row g-2" id="slot-buttons">
+                ${validSlots.map(time => `
+                    <div class="col-4 col-sm-3 col-md-2">
+                        <button class="btn btn-outline-primary slot-button" data-time="${time}" onclick="selectTime('${time}')">
+                            ${time}
+                        </button>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    function selectTime(time) {
+        selectedTime = time;
+        document.querySelectorAll('.slot-button').forEach(btn => {
+            btn.classList.remove('btn-primary');
+            btn.classList.add('btn-outline-primary');
+        });
+        document.querySelector(`.slot-button[data-time="${time}"]`).classList.remove('btn-outline-primary');
+        document.querySelector(`.slot-button[data-time="${time}"]`).classList.add('btn-primary');
+        document.getElementById('datetime-next-btn').disabled = false;
+    }
+    
+    // --- STEP 4 選択内容表示用ヘルパー関数 ---
+    function getDayOfWeek(dateStr) {
+        const parts = dateStr.split('-').map(Number);
+        const date = new Date(parts[0], parts[1] - 1, parts[2]);
+        return DAY_NAMES[date.getDay()];
+    }
+
+    // 修正箇所: 選択内容のリッチ表示
+    function updateSummaryDisplay() {
+        const display = document.getElementById('summary-display');
+        const courseName = selectedCourse ? selectedCourse.name : '未選択';
+        const duration = selectedCourse ? selectedCourse.duration : '-';
+        const instructorName = selectedInstructor ? selectedInstructor.name : '未選択';
+        const dateTimeStr = (selectedDate && selectedTime) ? 
+            `${selectedDate} (${getDayOfWeek(selectedDate)}) ${selectedTime}` : '未選択';
+        const price = selectedCourse ? selectedCourse.price.toLocaleString() : '-';
+
+        display.innerHTML = `
+            <dl class="row mb-0 small">
+                <dt class="col-sm-3 fw-bold text-muted">コース名:</dt>
+                <dd class="col-sm-9 fw-bold text-dark">${courseName} (${duration}分)</dd>
+                
+                <dt class="col-sm-3 fw-bold text-muted">講師名:</dt>
+                <dd class="col-sm-9 fw-bold text-dark">${instructorName}</dd>
+
+                <dt class="col-sm-3 fw-bold text-muted">日時:</dt>
+                <dd class="col-sm-9 fw-bold text-primary-custom">${dateTimeStr}</dd>
+
+                <dt class="col-sm-3 fw-bold text-muted border-top pt-2">料金 (目安):</dt>
+                <dd class="col-sm-9 fw-bold text-danger border-top pt-2">${price}円</dd>
+            </dl>
+        `;
+    }
+
+
+    // --- フォームと予約処理 ---
+/**
+     * ステップ4のフォーム送信を処理する。
+     */
+    function handleFormSubmit(event) {
+        event.preventDefault(); // フォームのデフォルト送信を防止
+
+        // STEP 2, 3 の情報が揃っているか確認
+        if (!selectedDate || !selectedTime || !selectedCourse || !selectedInstructor) {
+            showMessage('error', '予約日時またはコースが選択されていません。前のステップに戻って確認してください。');
+            return;
+        }
+
+        // STEP 4: 連絡先情報を取得
+        const nameElement = document.getElementById('student-name');
+        const emailElement = document.getElementById('student-email');
+        const notesElement = document.getElementById('notes');
+        
+        // ★修正箇所: email変数の定義が確実に実行されるように修正
+        const name = nameElement ? nameElement.value.trim() : '';
+        const email = emailElement ? emailElement.value.trim() : '';
+        const notes = notesElement ? notesElement.value.trim() : '';
+
+        // 必須フィールドの確認
+        if (name.length === 0 || email.length === 0) {
+            showMessage('error', 'お名前とメールアドレスは必須項目です。');
+            return;
+        }
+
+        // 予約データの構築
+        const bookingData = {
+            date: selectedDate,
+            time: selectedTime,
+            duration: selectedCourse.duration,
+            name: name, // 💡 ここで定義した email 変数が使われる
+            email: email, // 💡 ここで定義した email 変数が使われる
+            instructorId: selectedInstructor.id,
+            courseName: selectedCourse.name,
+            notes: notes
+        };
+
+        // GASへ送信
+        submitBooking(bookingData);
+    }
+
+    function showMessage(type, message) {
+        const area = document.getElementById('message-area');
+        area.className = `alert alert-${type === 'error' ? 'danger' : 'info'}`;
+        area.innerHTML = `<i class="fas fa-exclamation-triangle me-2"></i>${message}`;
+        area.style.display = 'block';
+        setTimeout(() => hideMessage(), 7000);
+    }
+
+    function hideMessage() {
+        document.getElementById('message-area').style.display = 'none';
+    }
+
+    function showLoading(show, stepId) {
+        const loadingOverlay = document.getElementById(`loading-${stepId}`);
+        if (loadingOverlay) {
+            loadingOverlay.style.display = show ? 'flex' : 'none';
+            const stepContent = document.querySelector(`#step-${stepId} .card`);
+            if (stepContent) {
+                stepContent.style.pointerEvents = show ? 'none' : 'auto';
+                stepContent.style.opacity = show ? '0.5' : '1';
+            }
+        }
+    }
+
+
+    // **********************************************
+    // 4. API通信ロジック (google.script.run)
+    // **********************************************
+
+    function fetchAvailableSlots() {
+        if (currentStep !== 3) {
+        } else {
+            showLoading(true, 'datetime');
+        }
+        
+        availableSlots = {}; 
+        
+        google.script.run
+            .withSuccessHandler(handleSuccessFetch)
+            .withFailureHandler(handleFailureFetch)
+            .getAvailableSlots({ 
+                instructorId: selectedInstructor ? selectedInstructor.id : INSTRUCTORS[0].id
+            });
+    }
+
+function handleSuccessFetch(result) {
+        showLoading(false, 'datetime');
+        
+        if (result && result.status === 'success') {
+             availableSlots = result.data || {};
+        } else if (result) {
+             showMessage('error', result.error || '空き時間の取得に失敗しました。');
+             availableSlots = {};
+        } else {
+             showMessage('error', 'APIからのレスポンス形式が無効です。');
+             availableSlots = {};
+        }
+
+        // データの取得が完了した時点で、カレンダーを描画する (日付の色を更新)
+        renderCalendar(); 
+        
+        // ★★★ 修正ポイント: ここから ★★★
+        // データが更新された後、もし日付が選択中であれば、
+        // 空き枠一覧も自動で再描画する。
+        // これにより、初回クリック時に空き枠データが未着でも、
+        // データ到着後に自動で表示されるようになる。
+        if (selectedDate) {
+             renderAvailableSlots(selectedDate);
+        }
+        // ★★★ 修正ポイント: ここまで ★★★
+    }
+
+    function handleFailureFetch(error) {
+        showLoading(false, 'datetime');
+        availableSlots = {}; 
+        console.error('GAS通信エラー (空き時間取得):', error);
+        showMessage('error', `GASサーバーとの通信に失敗しました。デプロイと権限設定を確認してください: ${error.message}`);
+        renderCalendar();
+    }
+
+    function submitBooking(bookingData) {
+        document.getElementById('submit-booking-btn').disabled = true;
+        showLoading(true, 'info');
+
+        google.script.run
+            .withSuccessHandler(handleSuccessBooking)
+            .withFailureHandler(handleFailureBooking)
+            .createBooking(bookingData);
+    }
+
+    function handleSuccessBooking(result) {
+        showLoading(false, 'info');
+
+        if (result && result.status === 'success') {
+            currentStep = 5;
+            updateUI();
+            fetchAvailableSlots(); 
+        } else if (result && result.status === 'error') {
+            showMessage('error', result.error || '不明な予約エラーが発生しました。');
+            document.getElementById('submit-booking-btn').disabled = false;
+        } else {
+             showMessage('error', `APIからのレスポンス形式が無効です。予約が完了しませんでした。`);
+             document.getElementById('submit-booking-btn').disabled = false;
+        }
+    }
+
+    function handleFailureBooking(error) {
+        showLoading(false, 'info');
+        console.error('GAS通信エラー (予約送信):', error);
+        showMessage('error', `GASサーバーとの通信に失敗しました。予約処理が完了しませんでした: ${error.message}`);
+        document.getElementById('submit-booking-btn').disabled = false;
+    }
+
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+
+  <!-- iframe-resizer 子側スクリプト -->
+  <script src="https://cdn.jsdelivr.net/npm/iframe-resizer/js/iframeResizer.contentWindow.min.js"></script>
+  
+  
+</body>
+</html>

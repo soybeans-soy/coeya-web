@@ -1,0 +1,26 @@
+[
+  {
+    "date": "",
+    "category": "重要",
+    "badgeClass": "bg-dark",
+    "title": "会員制度について",
+    "content": "体験レッスンから、会員へご希望の方にはカードを発行いたします。詳しくはレッスンの際にお伝えいたします。",
+    "link": ""
+  },
+  {
+    "date": "2025.12.25",
+    "category": "採用",
+    "badgeClass": "bg-danger",
+    "title": "【講師募集】一緒に「声家」を盛り上げてくれる仲間を募集しています",
+    "content": "業務拡大につき、ピアノ・声楽講師を募集します。詳細は採用ページをご覧ください。",
+    "link": "news/recruit.html"
+  },
+  {
+    "date": "2025.12.20",
+    "category": "お知らせ",
+    "badgeClass": "bg-secondary",
+    "title": "年末年始の休業期間について",
+    "content": "12月30日〜1月4日まで休業とさせていただきます。",
+    "link": ""
+  }
+]

@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>【Voix en Soie】サイト制作・運用に向けた指針（最終版）</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <style>
+        :root {
+            --primary-color: #e2b435; /* Gold - メインカラー */
+            --danger-color: #dc3545; /* Bootstrap Red for important notes */
+        }
+        .header-custom {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 1rem 0;
+            border-bottom: 5px solid #000;
+        }
+        .section-heading-custom {
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--primary-color);
+            display: inline-block;
+            padding-bottom: 5px;
+            margin-bottom: 1.5rem;
+        }
+        .card-custom {
+            border-top: 5px solid var(--primary-color);
+            transition: all 0.3s ease;
+        }
+        .card-custom:hover {
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+        }
+        .bg-light-yellow {
+            background-color: #fffaf0; /* 軽い背景色 */
+        }
+        .list-icon {
+            color: var(--primary-color);
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body class="bg-light">
+
+    <header class="header-custom text-center">
+        <h1 class="fs-3">Voix en Soie（仮称） サイト制作・運用に向けた指針（最終決定）</h1>
+    </header>
+
+    <main class="container my-5">
+        
+        <div class="alert alert-success text-center fw-bold" role="alert">
+            ✅ これまでの議論に基づき、**「コスト効率とシステム堅牢性」**を両立した運用方針が確定しました。
+        </div>
+
+        <section id="basics" class="mb-5 p-4 bg-white shadow-sm rounded">
+            <h2 class="section-heading-custom">1. サイトの基礎情報と決定事項</h2>
+            <dl class="row">
+                <dt class="col-sm-3 fw-bold">サイト名 / 教室名</dt>
+                <dd class="col-sm-9 fw-bold text-danger">【未決定】Voix en Soie（仮称）<br><small class="text-muted">（正式名称を早期に確定する必要があります）</small></dd>
+                
+                <dt class="col-sm-3 fw-bold">予約フロー</dt>
+                <dd class="col-sm-9">新規：PHPコンタクトフォーム (メールベース) / 会員：GAS予約ページ (パスワード保護)</dd>
+                
+                <dt class="col-sm-3 fw-bold">使用技術</dt>
+                <dd class="col-sm-9">フロントエンド：Bootstrap 5 / 予約システム：GAS (Google Apps Script) + Googleカレンダー</dd>
+
+                <dt class="col-sm-3 fw-bold">コンタクトフォーム</dt>
+                <dd class="col-sm-9 fw-bold text-success">PHPにて堅牢なフォームを構築（テストサーバーで動作確認後に本番移行）</dd>
+            </dl>
+        </section>
+
+        <section id="must-decide" class="mb-5">
+            <h2 class="section-heading-custom">2. 今後決定・実行すべき必須項目</h2>
+            <div class="row g-4">
+                
+                <div class="col-md-6">
+                    <div class="card card-custom h-100 p-3 shadow-sm">
+                        <div class="card-body">
+                            <h5 class="card-title fw-bold text-danger">🚀 名称・ドメインの最終決定</h5>
+                            <hr>
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-dot-circle list-icon"></i> **教室名（正式名称）の決定:** Voix en Soieを正式に採用するか、他の名称にするか。</li>
+                                <li><i class="fas fa-dot-circle list-icon"></i> **ドメインの選定と取得:** 確定した教室名に基づき、ドメイン（例: `.com`, `.jp`）を決定し、速やかに取得する。</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card card-custom h-100 p-3 shadow-sm">
+                        <div class="card-body">
+                            <h5 class="card-title fw-bold text-danger">🖥️ ホスティングサーバーの選定と契約（PHP対応必須）</h5>
+                            <hr>
+                            <p class="mb-1 fw-bold">決定：ロリポップ / Sakura Internet のいずれか（PHP対応プラン）</p>
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-check-circle list-icon"></i> **独自ドメインメール:** サーバー付属の無料メール機能を利用し、コストを最適化します。</li>
+                                <li><i class="fas fa-check-circle list-icon"></i> **PHP対応:** コンタクトフォームの堅牢性のため、PHPが動作するプランを選択します。</li>
+                                <li>**推奨:** 初心者には管理画面が分かりやすい**ロリポップ**のスタンダードプラン（月額550円〜）を推奨します。</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-12">
+                    <div class="card card-custom h-100 p-3 shadow-sm">
+                        <div class="card-body">
+                            <h5 class="card-title fw-bold text-danger">📸 写真撮影（優先順位の確定）</h5>
+                            <hr>
+                            <p class="mb-1 fw-bold">サイトローンチを最優先するため、写真撮影の優先順位を見直します。</p>
+                            <ul class="list-unstyled row">
+                                <li class="col-sm-6"><i class="fas fa-arrow-up list-icon text-danger"></i> **高優先度（ローンチに必須）:** 講師の**顔写真**、**教室のメインビジュアル**の2点。</li>
+                                <li class="col-sm-6"><i class="fas fa-arrow-down list-icon text-success"></i> **低優先度（ローンチ後）:** 広範な取材、レッスン動画撮影、複数のスチール写真撮影。</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="estimate" class="mb-5 p-4 bg-light-yellow shadow-sm rounded">
+            <h2 class="section-heading-custom">3. 必要な概算費用と制作期間</h2>
+            <p class="fw-bold text-danger">※ プロの外部業者に依頼する場合の一般的な概算費用です。自己制作の場合は機材費のみとなります。</p>
+
+            <table class="table table-striped table-bordered mt-3">
+                <thead class="table-dark">
+                    <tr><th>項目</th><th>内訳</th><th>概算費用（目安）</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>**サイト構築費用 (制作)**</td>
+                        <td>コンテンツ整理、デザイン調整、HTML/CSS/PHP実装、テスト</td>
+                        <td>**100,000円 〜 300,000円**</td>
+                    </tr>
+                    <tr>
+                        <td>**写真撮影 / 取材費**</td>
+                        <td>プロカメラマン費用、ライティング（文章作成）費用、交通費</td>
+                        <td>**50,000円 〜 150,000円**</td>
+                    </tr>
+                    <tr>
+                        <td>**初期運営費用**</td>
+                        <td>ドメイン取得費用 (年間)：約1,000円〜3,000円<br>ホスティングサーバー費用 (年間)：約6,000円〜15,000円</td>
+                        <td>**約7,000円 〜 18,000円**</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <p class="mt-4 fw-bold">【制作期間の目安】</p>
+            <p>全てのコンテンツ（写真、文章）が揃ってから、サイト公開までは**約4週間〜8週間**が目安となります。</p>
+        </section>
+
+        <section id="contact-guide" class="mb-5">
+            <h2 class="section-heading-custom">4. コンタクトフォームの最終指針</h2>
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="card card-custom h-100 p-3 shadow-sm">
+                        <div class="card-body">
+                            <h5 class="card-title fw-bold text-danger">⚙️ 技術・セキュリティ方針</h5>
+                            <hr>
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-lock list-icon"></i> **採用技術:** **PHP** (サーバーサイド言語) を採用し、堅牢なフォームを構築する。</li>
+                                <li><i class="fas fa-tools list-icon"></i> **テスト運用:** テストサーバーで動作を確認し、そのまま本番サイトにデプロイする。</li>
+                                <li><i class="fas fa-shield-alt list-icon"></i> **スパム対策:** Google reCAPTCHAなどの認証システムを導入する。</li>
+                                <li><i class="fas fa-file-contract list-icon"></i> **法的要件:** プライバシーポリシーへのリンクと同意チェックボックスを必ず設置する。</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card card-custom h-100 p-3 shadow-sm">
+                        <div class="card-body">
+                            <h5 class="card-title fw-bold text-danger">📬 受信・返信フロー（ハイブリッド運用）</h5>
+                            <hr>
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-inbox list-icon"></i> **送信先 (受信箱):** 新規作成した**GAS連携用 Gmailアカウント** (無料) を指定する。</li>
+                                <li><i class="fas fa-exchange-alt list-icon"></i> **独自ドメインメール:** サーバー付属の独自ドメインメール (`contact@domain.net`など) を、上記Gmailに**転送設定**する。</li>
+                                <li><i class="fas fa-reply list-icon"></i> **返信元:** 受信した**Gmailから**、送信元を**独自ドメイン**に設定して返信する（プロとしての一貫性）。</li>
+                                <li><i class="fas fa-clock list-icon"></i> **完了メッセージ:** 送信完了後、「48時間以内に担当者より返信します」と明記する。</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="gas-guide" class="mb-5 p-4 bg-light-yellow shadow-sm rounded">
+            <h2 class="section-heading-custom">5. GAS連携/予約システムの運用指針</h2>
+            <div class="row g-4">
+                <div class="col-md-12">
+                    <p class="fw-bold fs-5 text-primary-custom">予約システムは、費用を抑えつつセキュリティを確保するため、無料アカウントを活用します。</p>
+                    <ul class="list-unstyled row">
+                        <li class="col-sm-6 mb-3"><i class="fas fa-user-plus list-icon"></i> **GAS連携用アカウントの分離:** 予約管理とGAS連携専用の**無料Gmailアカウント**を新規作成し、個人のプライベートな情報と業務を分離する。</li>
+                        <li class="col-sm-6 mb-3"><i class="fas fa-calendar-alt list-icon"></i> **カレンダーの利用:** この専用アカウントでGoogleカレンダーを管理し、**会員予約の空き枠公開**に利用する。</li>
+                        <li class="col-sm-12"><i class="fas fa-chalkboard-teacher list-icon"></i> **講師へのレクチャー:** **Googleカレンダーの運用レクチャー**（空き枠の作成・管理方法）は、サイト構築と並行して実施する。</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-dark text-white text-center py-3">
+        <p class="m-0">© 2025 Voix en Soie (Temporary Name). All rights reserved.</p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/js/all.min.js"></script>
+</body>
+</html>

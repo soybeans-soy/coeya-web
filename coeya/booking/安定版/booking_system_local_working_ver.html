@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <base target="_top"> 
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>レッスン予約 | 声家 (coeya)</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Montserrat:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+<style>
+    :root { --primary-color: #e2b435; --dark-color: #333333; --bg-light: #fdfbf7; }
+    body { font-family: 'Noto Sans JP', sans-serif; background-color: var(--bg-light); color: var(--dark-color); padding-top: 80px; }
+    .fixed-header { position: fixed; top: 0; left: 0; width: 100%; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); z-index: 1000; padding: 15px 0; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+    .booking-card { background: #fff; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); overflow: hidden; min-height: 500px;}
+    .step-indicator { display: flex; justify-content: space-around; background: #f8f9fa; padding: 20px 0; border-bottom: 1px solid #eee; }
+    .step-item { font-size: 0.7rem; color: #ccc; text-align: center; font-weight: bold; flex: 1; }
+    .step-item.active { color: var(--primary-color); }
+    .step-item i { display: block; font-size: 1.2rem; margin-bottom: 5px; }
+    .btn-primary-custom { background-color: var(--primary-color); border: none; color: white; padding: 12px 30px; border-radius: 50px; font-weight: bold; transition: 0.3s; }
+    .btn-primary-custom:hover { background-color: #c99c2d; color: white; }
+    .slot-btn { margin: 5px; border-radius: 8px; font-weight: 500; border: 1px solid #dee2e6; background: white; min-width: 80px; }
+    .slot-btn:hover { background-color: #f0f8ff; border-color: var(--primary-color); }
+    .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); display: none; justify-content: center; align-items: center; z-index: 2000; }
+</style>
+</head>
+<body>
+
+    <header class="fixed-header">
+        <div class="container d-flex justify-content-between align-items-center">
+            <div class="h4 mb-0 fw-bold" style="font-family: 'Montserrat', sans-serif;">声家 <small class="fs-6 text-muted">coeya</small></div>
+            <a href="#" class="btn btn-sm btn-outline-secondary rounded-pill px-3">サイトへ戻る</a>
+        </div>
+    </header>
+
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="booking-card shadow">
+                    <div class="step-indicator">
+                        <div class="step-item active" id="step-1-indicator"><i class="fas fa-music"></i>コース</div>
+                        <div class="step-item" id="step-2-indicator"><i class="fas fa-calendar-alt"></i>日程</div>
+                        <div class="step-item" id="step-3-indicator"><i class="fas fa-clock"></i>時間</div>
+                        <div class="step-item" id="step-4-indicator"><i class="fas fa-user-edit"></i>情報</div>
+                        <div class="step-item" id="step-5-indicator"><i class="fas fa-check-circle"></i>完了</div>
+                    </div>
+
+                    <div class="p-4 p-md-5">
+                        <div id="step-1" class="step-content">
+                            <h4 class="fw-bold mb-4 text-center">レッスンコースを選択してください</h4>
+                            <div class="list-group mb-4" id="course-list"></div>
+                        </div>
+
+                        <div id="step-2" class="step-content" style="display:none;">
+                            <h4 class="fw-bold mb-4 text-center">希望日を選択してください</h4>
+                            <div id="calendar-container" class="mb-4"></div>
+                            <div class="text-center mt-3"><button class="btn btn-outline-secondary rounded-pill px-4" onclick="prevStep()">戻る</button></div>
+                        </div>
+
+                        <div id="step-3" class="step-content" style="display:none;">
+                            <h4 class="fw-bold mb-4 text-center">開始時間を選択してください</h4>
+                            <p class="text-center text-muted small mb-3">選択したコース時間分（<span id="selected-duration-display"></span>分）の空きがある枠を表示しています</p>
+                            <div id="slot-list" class="d-flex flex-wrap justify-content-center mb-4"></div>
+                            <div class="text-center mt-3"><button class="btn btn-outline-secondary rounded-pill px-4" onclick="prevStep()">戻る</button></div>
+                        </div>
+
+                        <div id="step-4" class="step-content" style="display:none;">
+                            <h4 class="fw-bold mb-4 text-center">お客様情報を入力してください</h4>
+                            <div class="alert alert-light border text-center mb-4">
+                                <small class="text-muted d-block">選択中の日時</small>
+                                <strong class="text-primary h5" id="confirm-datetime"></strong>
+                                <div class="small mt-1" id="confirm-course"></div>
+                            </div>
+                            
+                            <form id="booking-form">
+                                <div class="mb-3"><label class="form-label fw-bold small">お名前 <span class="text-danger">*</span></label><input type="text" id="name" class="form-control p-3 bg-light border-0" required placeholder="例：山田 太郎"></div>
+                                <div class="mb-3"><label class="form-label fw-bold small">メールアドレス <span class="text-danger">*</span></label><input type="email" id="email" class="form-control p-3 bg-light border-0" required placeholder="例：taro@example.com"></div>
+                                <div class="mb-3"><label class="form-label fw-bold small">備考（任意）</label><textarea id="notes" class="form-control p-3 bg-light border-0" rows="3" placeholder="ご質問や要望があればご記入ください"></textarea></div>
+                                <div class="d-grid gap-2 mt-4">
+                                    <button type="submit" class="btn btn-primary-custom py-3 shadow">予約を確定する</button>
+                                    <button type="button" class="btn btn-link text-muted text-decoration-none" onclick="prevStep()">戻る</button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <div id="step-5" class="step-content" style="display:none;">
+                            <div class="text-center py-5">
+                                <i class="fas fa-check-circle text-success display-1 mb-4"></i>
+                                <h3 class="fw-bold">予約が完了しました！</h3>
+                                <p class="text-muted">ご登録のメールアドレスに確認メールをお送りしました。</p>
+                                <button onclick="window.location.reload()" class="btn btn-primary-custom mt-4 px-5">トップページへ戻る</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="text-center">
+            <div class="spinner-border text-warning mb-3" role="status"></div>
+            <div id="loading-text" class="fw-bold text-muted">読み込み中...</div>
+        </div>
+    </div>
+
+<script>
+        // ★★★ ここに先ほどコピーしたGASのウェブアプリURLを貼り付けてください ★★★
+        const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzPZRvWOxTgO3NzRrumEFRYLPBARfd4_5jbRX0wyi3nOV-OJ3UaU2Rhk3fn39xPGzszBA/exec";
+
+        const courses = [
+            { id: 'trial', name: '【初回限定】体験レッスン', duration: 30 },
+            { id: 'vocal-60', name: 'マンツーマンボイトレ', duration: 60 },
+            { id: 'opera-60', name: '声楽・オペラ専門レッスン', duration: 60 },
+            { id: 'pro-90', name: 'プロ養成コース', duration: 90 }
+        ];
+
+        let currentStep = 1;
+        let selectedCourse = null;
+        let selectedDate = null;
+        let selectedTime = null;
+        let availableSlots = [];
+
+        document.addEventListener('DOMContentLoaded', () => { renderCourses(); updateUI(); });
+
+        // --- UI関連 (変更なし) ---
+        function renderCourses() {
+            const list = document.getElementById('course-list');
+            list.innerHTML = '';
+            courses.forEach(course => {
+                const btn = document.createElement('button');
+                btn.className = 'list-group-item list-group-item-action p-4 border rounded-4 mb-3 d-flex justify-content-between align-items-center shadow-sm';
+                btn.innerHTML = `<div><div class="fw-bold">${course.name}</div><small class="text-muted">所要時間: ${course.duration}分</small></div><i class="fas fa-chevron-right text-muted small"></i>`;
+                btn.onclick = () => { selectedCourse = course; nextStep(); };
+                list.appendChild(btn);
+            });
+        }
+
+        function nextStep() {
+            if (currentStep === 1) fetchAvailableSlots();
+            else { currentStep++; updateUI(); }
+        }
+
+        function prevStep() { currentStep--; updateUI(); }
+
+        function updateUI() {
+            document.querySelectorAll('.step-content').forEach(el => el.style.display = 'none');
+            document.getElementById(`step-${currentStep}`).style.display = 'block';
+            document.querySelectorAll('.step-item').forEach((el, idx) => {
+                if (idx < currentStep) el.classList.add('active');
+                else el.classList.remove('active');
+            });
+            if(currentStep === 3) document.getElementById('selected-duration-display').textContent = selectedCourse.duration;
+            if(currentStep === 4) {
+                 document.getElementById('confirm-datetime').textContent = `${selectedDate} ${selectedTime}`;
+                 document.getElementById('confirm-course').textContent = `${selectedCourse.name} (${selectedCourse.duration}分)`;
+            }
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function showLoading(show, text = '') {
+            const overlay = document.getElementById('loading-overlay');
+            overlay.style.display = show ? 'flex' : 'none';
+            if (text) document.getElementById('loading-text').innerText = text;
+        }
+
+        // --- ★変更点: 通信部分 (fetchを使用) ---
+
+        // 1. 空き状況の取得 (GETリクエスト)
+        function fetchAvailableSlots() {
+            showLoading(true, '空き状況を確認中...');
+            
+            // APIに action=getSlots パラメータをつけてアクセス
+            fetch(`${GAS_API_URL}?action=getSlots`)
+                .then(response => response.json())
+                .then(data => {
+                    // エラーチェック
+                    if (data.error) {
+                        alert('エラー: ' + data.error);
+                        showLoading(false);
+                        return;
+                    }
+                    availableSlots = data;
+                    renderCalendar();
+                    currentStep = 2; 
+                    updateUI();
+                    showLoading(false);
+                })
+                .catch(error => {
+                    console.error(error);
+                    alert('情報の取得に失敗しました。');
+                    showLoading(false);
+                });
+        }
+
+        // 2. カレンダー描画 (変更なし)
+        function renderCalendar() {
+            const container = document.getElementById('calendar-container');
+            const dates = [...new Set(availableSlots.map(s => s.date))].sort();
+
+            if (dates.length === 0) {
+                container.innerHTML = '<div class="alert alert-warning text-center">現在、予約可能な日程がありません。<br>別の日程が追加されるのをお待ちください。</div>';
+                return;
+            }
+
+            let html = '<div class="row g-2">';
+            dates.forEach(date => {
+                const dateObj = new Date(date);
+                const dateLabel = `${dateObj.getMonth() + 1}/${dateObj.getDate()}`; 
+                const weekDay = ['日','月','火','水','木','金','土'][dateObj.getDay()];
+                
+                html += `
+                <div class="col-4 col-md-3">
+                    <button class="btn btn-outline-dark w-100 py-3 rounded-3 fw-bold position-relative" onclick="selectDate('${date}')">
+                        ${dateLabel} <span class="small">(${weekDay})</span>
+                    </button>
+                </div>`;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function selectDate(date) {
+            selectedDate = date;
+            renderTimeSlots(date);
+            currentStep = 3; 
+            updateUI();
+        }
+
+        // 3. 時間枠描画 (変更なし)
+        function renderTimeSlots(date) {
+            const list = document.getElementById('slot-list');
+            list.innerHTML = '';
+            const slotsOnDate = availableSlots.filter(s => s.date === date);
+            slotsOnDate.sort((a, b) => a.startTime.localeCompare(b.startTime));
+
+            slotsOnDate.forEach(slot => {
+                const btn = document.createElement('button');
+                btn.className = 'btn slot-btn px-4 py-2 shadow-sm';
+                btn.innerText = slot.startTime;
+                btn.onclick = () => { 
+                    selectedTime = slot.startTime; 
+                    nextStep(); 
+                };
+                list.appendChild(btn);
+            });
+
+            if (slotsOnDate.length === 0) {
+                list.innerHTML = '<p class="text-muted">この日の予約枠は埋まっています。</p>';
+            }
+        }
+
+        // 4. 予約送信 (POSTリクエスト)
+        document.getElementById('booking-form').onsubmit = (e) => {
+            e.preventDefault();
+            
+            const bookingData = { 
+                courseName: selectedCourse.name, 
+                duration: selectedCourse.duration,
+                name: document.getElementById('name').value, 
+                email: document.getElementById('email').value, 
+                notes: document.getElementById('notes').value, 
+                date: selectedDate,
+                time: selectedTime
+            };
+
+            showLoading(true, '予約を確定しています...');
+            
+            // ★重要: CORSエラー回避のため、標準的なPOST(text/plain)を使用
+            fetch(GAS_API_URL, {
+                method: 'POST',
+                body: JSON.stringify(bookingData),
+                headers: {
+                    // GASへのPOSTは text/plain が一番安定します（OPTIONSプリフライト回避のため）
+                    "Content-Type": "text/plain;charset=utf-8"
+                }
+            })
+            .then(response => response.json())
+            .then(result => {
+                showLoading(false);
+                if (result.status === 'success') { 
+                    currentStep = 5; 
+                    updateUI(); 
+                } else { 
+                    alert('予約エラー: ' + (result.error || '不明なエラー')); 
+                }
+            })
+            .catch(error => {
+                showLoading(false);
+                alert('通信エラーが発生しました: ' + error.message);
+                console.error(error);
+            });
+        };
+    </script>
+</body>
+</html>

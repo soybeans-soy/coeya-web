@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>予約システム構築・運用マニュアル（完全版）</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { font-family: "Helvetica Neue", Arial, sans-serif; background-color: #f4f6f9; padding-bottom: 100px; }
+        .hero { background: linear-gradient(135deg, #1e3c72, #2a5298); color: white; padding: 4rem 0; margin-bottom: 2rem; }
+        .card { border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 2rem; border-radius: 12px; }
+        .card-header { background: white; border-bottom: 1px solid #eee; padding: 1.5rem; font-weight: bold; font-size: 1.2rem; display: flex; align-items: center; }
+        .step-num { width: 35px; height: 35px; background: #0d6efd; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px; font-weight: bold; }
+        .code-block { background: #282c34; color: #abb2bf; padding: 15px; border-radius: 6px; font-family: monospace; overflow-x: auto; margin: 10px 0; }
+        .highlight { color: #e06c75; font-weight: bold; }
+        .badge-teacher { background-color: #198754; color: white; padding: 5px 10px; border-radius: 20px; font-size: 0.8rem; margin-left: auto; }
+        .badge-admin { background-color: #dc3545; color: white; padding: 5px 10px; border-radius: 20px; font-size: 0.8rem; margin-left: auto; }
+        .nav-link.active { background-color: #0d6efd !important; }
+    </style>
+</head>
+<body>
+
+    <div class="hero text-center">
+        <div class="container">
+            <h1 class="display-5 fw-bold"><i class="fas fa-book-reader me-3"></i>完全運用マニュアル</h1>
+            <p class="lead">複数講師対応・予約システム構築ガイド</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-3 d-none d-lg-block">
+                <div class="list-group sticky-top" style="top: 20px;">
+                    <a href="#intro" class="list-group-item list-group-item-action">はじめに</a>
+                    <a href="#step1" class="list-group-item list-group-item-action">Step 1: 講師カレンダー準備</a>
+                    <a href="#step2" class="list-group-item list-group-item-action">Step 2: GASの設置</a>
+                    <a href="#step3" class="list-group-item list-group-item-action">Step 3: HTMLの設定</a>
+                    <a href="#maintenance" class="list-group-item list-group-item-action">運用・プラン追加</a>
+                </div>
+            </div>
+
+            <div class="col-lg-9">
+                
+                <section id="intro" class="mb-5">
+                    <div class="alert alert-info">
+                        <strong><i class="fas fa-info-circle"></i> このマニュアルについて</strong><br>
+                        WEB知識がない方でも、コピー＆ペーストだけで「複数講師対応の予約システム」を構築・運用できるように作成しています。
+                    </div>
+                </section>
+
+                <section id="step1">
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="step-num">1</span> 講師のカレンダー準備
+                            <span class="badge-teacher">講師向け</span>
+                        </div>
+                        <div class="card-body">
+                            <p>講師ごとに予約受付用のカレンダーを作成します。</p>
+                            
+                            <h5>① 新規カレンダー作成</h5>
+                            <ol>
+                                <li>PCでGoogleカレンダーを開く。</li>
+                                <li>左メニュー「他のカレンダー」横の＋ ＞ <strong>「新しいカレンダーを作成」</strong>。</li>
+                                <li>名前（例：田中レッスン用）を入力して作成。</li>
+                            </ol>
+
+                            <div class="alert alert-warning">
+                                <strong><i class="fas fa-exclamation-triangle"></i> 重要：共有設定</strong><br>
+                                作成したカレンダーの設定画面で、「特定のユーザーとの共有」に<br>
+                                <strong>管理者のGmailアドレス（GAS作成者のアドレス）</strong>を追加し、<br>
+                                権限を<strong>「予定の変更（権限の管理）」</strong>に設定してください。<br>
+                                ※これをしないとシステムが予約を書き込めません。
+                            </div>
+
+                            <h5>② IDの確認</h5>
+                            <p>設定画面の下の方にある「カレンダーID」をコピーして管理者に伝えます。</p>
+                            <div class="code-block">xxxxxxxxx@group.calendar.google.com</div>
+
+                            <h5>③ 予約枠の作成</h5>
+                            <p>予約を受け付けたい日に、以下のルールで予定を入れます。</p>
+                            <ul>
+                                <li>タイトル：<strong>予約可能枠</strong>（一字一句正確に）</li>
+                                <li>時間：終日、または時間指定</li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="step2">
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="step-num">2</span> GAS（プログラム）の設置
+                            <span class="badge-admin">管理者向け</span>
+                        </div>
+                        <div class="card-body">
+                            <p>システムの中枢を設定します。</p>
+                            
+                            <h5>① コードの貼り付け</h5>
+                            <ol>
+                                <li><a href="https://script.google.com/" target="_blank">Google Apps Script</a>を開き、新規プロジェクトを作成。</li>
+                                <li>提供された <code>Code.gs</code> の中身を全て貼り付けます。</li>
+                            </ol>
+
+                            <h5>② 設定の書き換え</h5>
+                            <p>コード上部の <code>INSTRUCTORS</code> の部分を書き換えます。</p>
+                            <div class="code-block">
+const INSTRUCTORS = {
+  '<span class="highlight">tanaka</span>': { // 講師ID（英数字で自由）
+    name: '田中 講師',
+    calendarId: '<span class="highlight">先ほど取得したカレンダーID</span>',
+    email: 'tanaka@example.com',
+    supportedCourses: [] // 空なら全コース対応
+  },
+  ...
+};
+                            </div>
+
+                            <h5>③ 承認とデプロイ</h5>
+                            <ol>
+                                <li><code>testMail</code> 関数を実行して、権限承認を行う。</li>
+                                <li>右上の「デプロイ」＞「新しいデプロイ」。</li>
+                                <li><strong>アクセスできるユーザー：全員 (Anyone)</strong> に設定。</li>
+                                <li>発行されたURLをコピーする。</li>
+                            </ol>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="step3">
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="step-num">3</span> HTMLファイルの仕上げ
+                            <span class="badge-admin">管理者向け</span>
+                        </div>
+                        <div class="card-body">
+                            <p>提供された <code>booking_system_multi.html</code> をメモ帳などで開きます。</p>
+                            <p>下の方にある <code>GAS_API_URL</code> の行を探し、URLを貼り替えます。</p>
+                            <div class="code-block">
+const GAS_API_URL = "<span class="highlight">https://script.google.com/macros/s/xxxx/exec</span>";
+                            </div>
+                            <p>上書き保存すれば完成です！このファイルをブラウザで開けば予約システムが動きます。</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="maintenance">
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="step-num">4</span> 運用・プラン追加
+                            <span class="badge-admin">管理者向け</span>
+                        </div>
+                        <div class="card-body">
+                            <p>このシステムは、<strong>HTMLファイルを修正せずに</strong>プランや講師を増やせる設計になっています。</p>
+
+                            <h5>プランを増やす場合</h5>
+                            <ol>
+                                <li>GASの <code>Code.gs</code> を開く。</li>
+                                <li><code>const COURSES = [...]</code> の中にデータを追加する。</li>
+                                <li>保存して、必ず<strong>「新しいデプロイ」</strong>を行う。</li>
+                            </ol>
+
+                            <h5>講師を増やす場合</h5>
+                            <ol>
+                                <li>GASの <code>const INSTRUCTORS</code> にデータを追加する。</li>
+                                <li>保存して、必ず<strong>「新しいデプロイ」</strong>を行う。</li>
+                            </ol>
+                            
+                            <div class="alert alert-success">
+                                <strong>ポイント：</strong> HTMLファイルはそのままでOKです。デプロイを更新するだけで、Web上の予約画面に新しいメニューが即座に反映されます。
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

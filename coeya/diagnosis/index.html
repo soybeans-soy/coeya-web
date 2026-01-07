@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>30秒でわかる！ボイトレ診断 | 声家 (coeya)</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Montserrat:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/style.css">
+
+    
+    <style>
+        /* 診断カード */
+        .diagnosis-card { min-height: 450px; display: flex; flex-direction: column; justify-content: center; background: #fff; padding: 40px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+        .option-btn { margin: 10px 0; padding: 20px; font-size: 1.1rem; border: 2px solid var(--primary-color); transition: all 0.3s; background: white; width: 100%; border-radius: 50px; text-align: center; cursor: pointer; font-weight: bold; }
+        .option-btn:hover { background: var(--primary-color); color: white; transform: translateY(-2px); }
+        
+        #result-area { border: 3px solid var(--primary-color); padding: 40px; border-radius: 20px; background: #fff; }
+        .btn-cta { background-color: #eff079; color: #000; font-weight: bold; padding: 15px; border-radius: 50px; transition: 0.3s; border: none; }
+        .btn-cta:hover { background-color: var(--primary-color); }
+        
+        .hidden { display: none; }
+        .retry-btn { color: #666; text-decoration: underline; cursor: pointer; border: none; background: none; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+    <header class="fixed-header" id="mainHeader">
+        <div class="header-container">
+            <a href="/index.html#mainHeader" class="logo-link scroll-trigger">
+                <img src="/coeya-logo.png" alt="声家ロゴ" class="site-logo">
+<div class="brand-text">
+    <span class="h4 mb-0 fw-bold">声家 <small class="brand-english text-muted">coeya</small></span>
+    <span class="brand-subtitle text-muted d-none d-xl-block">プロ志向から趣味のカラオケまで幅広く対応</span>
+</div>
+            </a>
+
+            <button class="menu-toggler d-lg-none" id="menuToggle" aria-label="メニューを開く">
+                <i class="fas fa-bars"></i>
+            </button>
+            
+            <nav class="fullscreen-nav" id="mainNav">
+                <ul class="nav-list">
+                    <li class="nav-item"><a class="nav-link-custom scroll-trigger" href="/index.html#about">教室について</a></li>
+                    <li class="nav-item"><a class="nav-link-custom scroll-trigger" href="/index.html#lessons">レッスン内容</a></li>
+                    <li class="nav-item"><a class="nav-link-custom scroll-trigger" href="/index.html#pricing">料金プラン</a></li>
+                    <li class="nav-item"><a class="nav-link-custom scroll-trigger" href="/index.html#voices">生徒さんの声</a></li>
+                    <li class="nav-item"><a class="nav-link-custom" href="/contact/">お問い合わせ</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+<main class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 text-center">
+            <div id="quiz-area" class="diagnosis-card">
+                <h2 id="question-text" class="fw-bold mb-5 text-dark">どなたのレッスンをご希望ですか？</h2>
+                <div id="options-container"></div>
+            </div>
+
+<div id="result-area" class="hidden shadow-lg">
+    <h2 class="fw-bold mb-3" style="color: var(--primary-color);">あなたへの推奨プラン</h2>
+    
+    <div class="alert alert-info mb-4">
+        <p class="mb-1 small">お問い合わせフォームの「ご希望プラン」で以下を選択してください</p>
+        <h3 id="result-title" class="fw-bold mb-0 text-dark"></h3>
+    </div>
+
+    <div id="result-content" class="p-3 text-start">
+        <p id="result-text" class="fs-5 mb-4 text-secondary"></p>
+    </div>
+
+    <div class="alert alert-warning mb-4 py-3 text-center">
+        <strong>講師よりメッセージ:</strong><br>
+        あなたの「なりたい姿」を全力でプロデュースします。
+    </div>
+
+<a id="contact-link" href="/contact/index.html" class="btn btn-cta btn-lg w-100 d-block text-decoration-none">
+    この結果でお問い合わせ・体験を申し込む
+</a>
+    
+    <button class="retry-btn" onclick="retry()">最初からやり直す</button>
+</div>
+
+
+        </div>
+    </div>
+</main>
+
+<script>
+    // 元の診断ロジックを維持
+    const quizData = [
+        {
+            question: "どなたのレッスンをご希望ですか？",
+            options: [
+                { text: "大人（中学生以上）", next: 1 },
+                { text: "子供（小学生以下）", next: 2 }
+            ]
+        },
+        {
+            question: "どのような目標をお持ちですか？",
+            options: [
+                { 
+                    text: "プロ・音大・オーディションを目指したい", 
+                    formVal: "プロフェッショナル養成プラン", 
+                    desc: "Be:FIRST等を手掛けた現役のプロ講師が指導します。現場で通用する技術からオーディション対策まで万全です。" 
+                },
+                { 
+                    text: "趣味を極めて、もっと上手く歌いたい", 
+                    formVal: "表現力・カラオケ向上プラン", 
+                    desc: "あなたの声の魅力を引き出し、聴き手を魅了する表現力を養います。ポップスからクラシックまで幅広く対応可能です。" 
+                },
+                { 
+                    text: "基礎から学び、声を出しやすくしたい", 
+                    formVal: "ボイトレ基礎プラン", 
+                    desc: "喉に負担をかけない発声法や呼吸法など、一生モノの声の土台を作ります。初心者の方も大歓迎です。" 
+                }
+            ]
+        },
+        {
+            question: "お子様の目標はどちらに近いですか？",
+            options: [
+                { 
+                    text: "若いうちからプロ・スターを目指したい", 
+                    formVal: "キッズ・プロ養成プラン", 
+                    desc: "AVEX等での指導実績を持つ講師が、お子様の才能を早期に開花させます。将来を見据えた本格指導を行います。" 
+                },
+                { 
+                    text: "まずは音楽を楽しみ、感性を育てたい", 
+                    formVal: "リトミック・ジュニアプラン", 
+                    desc: "提携するリトミック教室のノウハウを活かし、遊びながら音感と表現力を養います。音楽を楽しむ心を育てます。" 
+                }
+            ]
+        }
+    ];
+
+    let currentStep = 0;
+
+    function renderQuiz() {
+        const step = quizData[currentStep];
+        document.getElementById('question-text').innerText = step.question;
+        const container = document.getElementById('options-container');
+        container.innerHTML = '';
+
+        step.options.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn shadow-sm';
+            btn.innerText = opt.text;
+            btn.onclick = () => {
+                if (opt.formVal) {
+                    showResult(opt.formVal, opt.desc);
+                } else {
+                    currentStep = opt.next;
+                    renderQuiz();
+                }
+            };
+            container.appendChild(btn);
+        });
+    }
+
+    function showResult(title, desc) {
+        document.getElementById('quiz-area').classList.add('hidden');
+        document.getElementById('result-area').classList.remove('hidden');
+        document.getElementById('result-title').innerText = title;
+        document.getElementById('result-text').innerText = desc;
+
+        // 【重要】自作フォーム（contact/index.html）にパラメータを付けて飛ばす
+        // これにより、フォーム側のセレクトボックスが自動で選択されます
+        const contactPageUrl = `../contact/index.html?plan=${encodeURIComponent(title)}`;
+        document.getElementById('contact-link').href = contactPageUrl;
+    }
+
+    function retry() {
+        currentStep = 0;
+        document.getElementById('quiz-area').classList.remove('hidden');
+        document.getElementById('result-area').classList.add('hidden');
+        renderQuiz();
+    }
+
+    renderQuiz();
+</script>
+<footer>
+    <div class="container text-center"> 
+        <img src="/coeya-logo.png" alt="声家ロゴ" class="footer-logo">
+        <h4 class="fw-bold mb-3">声家 (coeya)</h4>
+        
+        <div class="footer-sitemap mb-4">
+            <div class="row g-3 justify-content-center">
+                <div class="col-6 col-md-auto px-3">
+                    <h6 class="fw-bold mb-2">Main</h6>
+                    <ul class="list-unstyled small">
+                        <li><a href="/index.html" class="text-muted text-decoration-none">トップページ</a></li>
+                        <li><a href="/index.html#about" class="text-muted text-decoration-none">教室について</a></li>
+                    </ul>
+                </div>
+            <div class="col-6 col-md-auto px-3 border-start-md">
+                <h6 class="fw-bold mb-2">Lessons</h6>
+                <ul class="list-unstyled small">
+                    <li><a href="/lesson/index.html" class="text-muted text-decoration-none">全コース一覧</a></li>
+                    <li><a href="/lesson/health.html" class="text-muted text-decoration-none">健康ボイトレ</a></li>
+                </ul>
+            </div>
+                <div class="col-6 col-md-auto px-3 border-start-md">
+                    <h6 class="fw-bold mb-2">Support</h6>
+                    <ul class="list-unstyled small">
+                        <li><a href="/contact/index.html" class="text-muted text-decoration-none">お問い合わせ</a></li>
+                        <li><a href="/index.html#voices" class="text-muted text-decoration-none">生徒さんの声</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <p class="small text-muted mb-4">
+            東京藝術大学出身のプロ声楽家・後藤菜美が主宰する音楽教室。<br>
+            プロ志向から趣味のカラオケまで、一人ひとりの個性を引き出します。
+        </p>
+        
+        <div class="mb-4">
+            <a href="https://twitter.com/coeya_jp" class="text-dark mx-3 fs-3 transition-hover"><i class="fab fa-twitter"></i></a>
+            <a href="/contact/" class="text-dark mx-3 fs-3 transition-hover"><i class="fas fa-envelope"></i></a>
+        </div>
+        
+        <div class="mb-4 small">
+            <a href="/legal/" class="text-muted mx-3 text-decoration-none">特定商取引法に基づく表記</a>
+            <a href="/legal/" class="text-muted mx-3 text-decoration-none">プライバシーポリシー</a>
+        </div>
+        
+        <p class="mb-0 small text-muted">© <span id="year"></span> coeya.jp / 声家 All rights reserved.</p>
+    </div>
+</footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/script.js"></script>
+</body>
+</html>

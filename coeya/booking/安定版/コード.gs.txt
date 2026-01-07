@@ -1,0 +1,275 @@
+// Code.gs
+
+// =======================================================
+// 【設定】カレンダーIDとタイムゾーン
+// =======================================================
+// ★★★ ここを予約枠に使用するあなたのカレンダーIDに置き換えてください ★★★
+const CALENDAR_ID = 'cc2520ac972443f5539a342d7ad267c1d4c3b1ed56c855b367b8f683ce16ae47@group.calendar.google.com'; 
+
+// 日本のタイムゾーン
+const TIME_ZONE = 'Asia/Tokyo'; 
+
+// スクリプトのメールアドレス（通知メールの送信元となります） ここを実際の運営側のメールアドレスにします。
+// このメールアドレスは、GASをデプロイしたアカウントのメールアドレスである必要があります
+const SENDER_EMAIL = 'trextacy@gmail.com';
+
+// ★新規追加★ 管理者・講師への通知メールの宛先
+// const ADMIN_EMAIL = '講師または管理者@voicelesson.com'; // ← (B) 実際に通知を受け取りたいアドレス
+
+
+
+// 予約可能枠としてカレンダーに登録したイベントのタイトル
+const SLOT_EVENT_TITLE = "予約可能枠"; 
+
+// 予約枠を分割する最小単位（例: 60分レッスンであれば60、30分レッスンもあれば30）
+const SLOT_DURATION_MINUTES = 60; 
+
+// ★★★ ログ記録のための設定を追加 ★★★
+const LOG_SHEET_ID = '16FwDWK5ENfZWia8X9Z5QZS35fD1zRIKFNUgDJR3yJWY'; 
+const LOG_SHEET_NAME = '予約ログ'; // 記録したいシート名 (シート1 など、存在しない場合は最初のシートを使用)
+
+// =======================================================
+// 1. エントリーポイント (Webアプリとして動作)
+// =======================================================
+/**
+ * HTMLファイルを返す。
+ */
+function doGet() {
+  return HtmlService.createTemplateFromFile('index').evaluate()
+    .setTitle('レッスン予約システム')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL); 
+}
+
+// =======================================================
+// 2. 予約情報取得 (getAvailableSlots) - google.script.runから直接呼び出される
+// =======================================================
+/**
+ * 予約可能な時間枠を返す。（予約済みイベントとの重複チェックあり）
+ */
+function getAvailableSlots(requestData) {
+  try {
+      const today = new Date();
+      const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+      const endOfNextMonth = new Date(today.getFullYear(), today.getMonth() + 2, 0); 
+      
+      const timeMin = startOfMonth.toISOString();
+      const timeMax = endOfNextMonth.toISOString();
+
+      const response = Calendar.Events.list(CALENDAR_ID, {
+        timeMin: timeMin,
+        timeMax: timeMax,
+        singleEvents: true, 
+        orderBy: 'startTime',
+        fields: 'items(summary,start,end,status)' 
+      });
+      
+      const allEvents = response.items || [];
+      const availableSlots = {};
+      const slotEvents = []; 
+      const bookedEvents = []; 
+
+      allEvents.forEach(event => {
+          if (!event.start || !event.start.dateTime || !event.end || !event.end.dateTime || event.status === 'cancelled') {
+              return; 
+          }
+          if (event.summary === SLOT_EVENT_TITLE) {
+              slotEvents.push(event);
+          } else {
+              bookedEvents.push(event);
+          }
+      });
+      
+      slotEvents.forEach(slotEvent => {
+        let currentSlotTime = new Date(slotEvent.start.dateTime);
+        const endTime = new Date(slotEvent.end.dateTime);
+        
+        while (currentSlotTime.getTime() < endTime.getTime()) {
+            
+            const potentialSlotStartTime = currentSlotTime.getTime();
+            const potentialSlotEndTime = potentialSlotStartTime + SLOT_DURATION_MINUTES * 60 * 1000;
+            
+            if (potentialSlotStartTime < today.getTime()) { 
+                currentSlotTime.setMinutes(currentSlotTime.getMinutes() + SLOT_DURATION_MINUTES);
+                continue;
+            }
+            
+            // 二重予約チェックロジック
+            const isReserved = bookedEvents.some(bookedEvent => {
+                const bookedStart = new Date(bookedEvent.start.dateTime).getTime();
+                const bookedEnd = new Date(bookedEvent.end.dateTime).getTime();
+                
+                // 予約イベントが、現在の潜在的な時間枠と時間的に重複していないかチェック
+                return bookedStart < potentialSlotEndTime && bookedEnd > potentialSlotStartTime;
+            });
+            
+            if (isReserved) {
+                currentSlotTime.setMinutes(currentSlotTime.getMinutes() + SLOT_DURATION_MINUTES);
+                continue;
+            }
+            
+            // 予約されていない場合はスロットに追加 (最小単位の枠)
+            const dateKey = Utilities.formatDate(currentSlotTime, TIME_ZONE, 'yyyy-MM-dd');
+            const timeSlot = Utilities.formatDate(currentSlotTime, TIME_ZONE, 'HH:mm');
+            
+            if (!availableSlots[dateKey]) {
+              availableSlots[dateKey] = [];
+            }
+            availableSlots[dateKey].push(timeSlot);
+            
+            currentSlotTime.setMinutes(currentSlotTime.getMinutes() + SLOT_DURATION_MINUTES);
+        }
+      });
+      
+      return { status: 'success', data: availableSlots };
+
+  } catch (error) {
+      Logger.log("getAvailableSlotsエラー: " + error.message + " | Stack: " + error.stack);
+      return { status: 'error', error: "空き時間取得エラー: " + error.message };
+  }
+}
+
+// =======================================================
+// 3. 予約作成 (createBooking) - google.script.runから直接呼び出される
+// =======================================================
+/**
+ * 予約を確定しカレンダーに登録し、ログを記録する。
+ */
+function createBooking(bookingData) {
+  try {
+    const { date, time, duration, name, email, instructorId, courseName, notes } = bookingData;
+    
+    // 1. 予約日時をJSTで作成
+    const startDateTimeStr = `${date}T${time}:00+09:00`; 
+    const startDateTime = new Date(startDateTimeStr);
+    const endTime = new Date(startDateTime.getTime() + duration * 60 * 1000);
+    
+    const calendar = CalendarApp.getCalendarById(CALENDAR_ID);
+    if (!calendar) throw new Error("予約カレンダーIDが設定されていないか、アクセスできません。");
+    
+    // ★★★ 修正箇所: 最終チェックを追加 (二重予約防止) ★★★
+    const conflictingEvents = calendar.getEvents(startDateTime, endTime);
+
+    // 既存の予約枠イベント（SLOT_EVENT_TITLE）以外の、予約済みイベントをチェック
+    const isConflict = conflictingEvents.some(event => event.getTitle() !== SLOT_EVENT_TITLE);
+    
+    if (isConflict) {
+        // ログ記録の処理をここに追加することも推奨
+        // logBooking('conflict', ...);
+        
+        // エラーをフロントエンドに返し、ユーザーに再選択を促す
+        return { status: 'error', error: "申し訳ありません。この時間枠は直前に他のユーザーによって予約されました。恐れ入りますが、別の時間を選択してください。" };
+    }
+    // ★★★ 修正箇所はここまで ★★★    
+    const eventTitle = `${courseName}予約: ${name}`;
+    const descriptionBody = `
+      -- 予約内容の詳細 --
+      コース: ${courseName} (${duration}分)
+      受講者: ${name}
+      メール: ${email}
+      日時: ${Utilities.formatDate(startDateTime, TIME_ZONE, 'yyyy年MM月dd日 HH:mm')}
+      講師ID: ${instructorId}
+      
+      備考/特記事項:
+      ${notes || '特になし'}
+    `;
+
+    // 3. カレンダーイベントを作成し、予約者と講師（自分自身）を招待
+    const event = calendar.createEvent( // ★ event 変数に代入してIDを取得可能にする
+      eventTitle, 
+      startDateTime, 
+      endTime, 
+      {
+        description: descriptionBody,
+        sendInvites: true, 
+        guests: email + ',' + SENDER_EMAIL,  // ←テスト環境ではこちらを使う
+      //  guests: email + ',' + ADMIN_EMAIL,  // ←本番環境ではこちらを利用する
+        guestCanModify: false
+      }
+    );
+    
+    // ログをスプレッドシートに記録
+    try {
+        const ss = SpreadsheetApp.openById(LOG_SHEET_ID);
+        const sheet = ss.getSheetByName(LOG_SHEET_NAME) || ss.getSheets()[0]; 
+        
+        // ★★★ 修正箇所: ログに記録するデータ配列をご要望の10項目に更新 ★★★
+        const logData = [
+            // 1. 登録日時 (予約完了タイムスタンプ)
+            Utilities.formatDate(new Date(), TIME_ZONE, 'yyyy/MM/dd HH:mm:ss'), 
+            // 2. 予約ID
+            event.getId(), 
+            // 3. 講師名 (現時点ではIDを使用)
+            instructorId, 
+            // 4. カレンダーID
+            CALENDAR_ID,
+            // 5. コース名
+            courseName,
+            // 6. 時間(分)
+            duration, 
+            // 7. 予約日時 (レッスン開始日時)
+            Utilities.formatDate(startDateTime, TIME_ZONE, 'yyyy/MM/dd HH:mm'), 
+            // 8. 氏名
+            name,
+            // 9. メールアドレス
+            email,
+            // 10. 備考
+            notes || ''
+        ];
+        
+        sheet.appendRow(logData);
+    } catch (e) {
+        Logger.log(`スプレッドシートへのログ記録中にエラーが発生しました: ${e.message}`);
+    }
+    
+    // 予約者と管理者双方にメールを送信
+    const clientMailBody = `
+        ${name}様
+
+        この度はVoix en Soieのレッスンをご予約いただき、誠にありがとうございます。
+        以下の内容でご予約が確定いたしました。カレンダーの招待メールも別途送信しておりますので、ご確認ください。
+
+        --- 予約詳細 ---
+        タイトル: ${eventTitle}
+        日時: ${Utilities.formatDate(startDateTime, TIME_ZONE, 'yyyy年MM月dd日 (EEE) HH:mm')}
+        コース: ${courseName} (${duration}分)
+        場所: [オンライン/対面など、詳細情報をここに記載]
+        ---
+
+        レッスン当日を楽しみにお待ちしております。
+    `;
+    
+    const adminNotificationBody = `
+        【システム通知】新しい予約が入りました。
+
+        -- 予約詳細 --
+        コース: ${courseName} (${duration}分)
+        受講者: ${name}
+        メール: ${email}
+        日時: ${Utilities.formatDate(startDateTime, TIME_ZONE, 'yyyy年MM月dd日 (EEE) HH:mm')}
+        備考: ${notes || '特になし'}
+
+        カレンダーをご確認ください。
+    `;
+
+    // A. 予約者本人へ確認メールを送信
+    MailApp.sendEmail({
+      to: email,
+      subject: `【予約確定】Voix en Soie - ${courseName} ${Utilities.formatDate(startDateTime, TIME_ZONE, 'MM/dd HH:mm')}`,
+      body: clientMailBody
+    });
+    
+    // B. 管理者（自分自身）へ通知メールを送信
+    MailApp.sendEmail({
+      to: SENDER_EMAIL, 　// テスト環境では、こちらを使う
+  //  to: ADMIN\_EMAIL, // 本番では、こちらのスラッシュを削除する
+      subject: `【新規予約通知】${courseName} ${Utilities.formatDate(startDateTime, TIME_ZONE, 'MM/dd HH:mm')}`,
+      body: adminNotificationBody
+    });
+    
+    return { status: 'success', data: { message: '予約が正常に作成されました。' } };
+    
+  } catch (error) {
+      Logger.log("createBookingエラー: " + error.message);
+      return { status: 'error', error: "予約処理エラー: " + error.message };
+  }
+}
